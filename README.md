@@ -7,8 +7,8 @@ analysis by a Large Language Model (LLM) for summarization or alerting.
 The project is built to utilize an LLM hosted using LM Studio, which can
 be served:
 
--   On the same machine\
--   On the same local network\
+-   On the same machine
+-   On the same local network
 -   Over the internet using your solution of choice (reverse proxy, VPS,
     Tailscale, etc.)
 
@@ -16,9 +16,9 @@ For alerting, the program utilizes Slack Webhooks, enabling push
 notifications to be sent to a mobile device running Slack.
 
 The program is compatible with: 
-- Linux\
-- macOS\
-- Windows\*
+- Linux
+- macOS
+- Windows*
 
 \*Strongly suggest macOS or Linux. See Known Issues below.
 
@@ -26,12 +26,12 @@ The program is compatible with:
 
 # High-Level Workflow
 
-1.  User enters topics of interest\
-2.  User provides a list of RSS feeds\
-3.  Sentinel pulls RSS feeds at user-configured intervals of time\
-4.  RSS content is sent to the user-provided LLM server\
-5.  The LLM reviews feeds and reports back to Sentinel on relevant topics of interest\
-6.  If Slack webhook is configured, alerts are forwarded\
+1.  User enters topics of interest
+2.  User provides a list of RSS feeds
+3.  Sentinel pulls RSS feeds at user-configured intervals of time
+4.  RSS content is sent to the user-provided LLM server
+5.  The LLM reviews feeds and reports back to Sentinel on relevant topics of interest
+6.  If Slack webhook is configured, alerts are forwarded
 7.  Optional bulk analysis identifies trends over time
 
 ------------------------------------------------------------------------
@@ -40,20 +40,20 @@ The program is compatible with:
 
 ## RSS Feed Monitoring
 
--   Periodic polling of RSS feeds\
--   Deduplication and timestamp tracking\
+-   Periodic polling of RSS feeds
+-   Deduplication and timestamp tracking
 -   Handles slow or malformed feeds
 
 ## LLM-Based Analysis (Optional)
 
--   Sends feed items to local LLM endpoint\
--   Prompt-driven classification, summarization, filtering\
+-   Sends feed items to local LLM endpoint
+-   Prompt-driven classification, summarization, filtering
 -   Works with any OpenAI-compatible `/v1/chat/completions` endpoint
 
 ## Alerting / Signal Generation
 
--   Slack webhook support\
--   Structured output suitable for automation\
+-   Slack webhook support
+-   Structured output suitable for automation
 -   Designed for integration into larger workflows
 
 ## Local & Self-Hosted
@@ -177,7 +177,21 @@ Alpha
 
 # License
 
-Specify license (MIT, Apache 2.0, GPLv3, etc.)
+This project is licensed under the **MIT License**.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, subject to the following conditions:
+
+1. **Attribution:** You must give appropriate credit to the original author (ShunyaGuest / EverythingsComputer), provide a link to the repository, and indicate if changes were made.
+2. **No Warranty:** The software is provided "as is", without warranty of any kind, express or implied.
+
+### Dependencies
+
+This project uses the following third-party libraries. Please review their licenses when using this project:
+
+- **PySide6** — LGPL  
+- **feedparser** — BSD  
+- **requests** — Apache 2.0  
+- **python-dateutil** — BSD
 
 ------------------------------------------------------------------------
 
