@@ -123,7 +123,7 @@ Windows:
 1.  Click "Load Prompt File" and load `default_prompt.txt`
 2.  Click "Load Data Source File" and Load `Default_test` RSS list
 3.  Open "Additional Settings" and enter LLM URL into LMSTUDIO_URL (e.g., `http://x.x.x.x:<port>/v1/chat/completions`)
-4.  Load model in LM Studio. Turn on "Serve on Local Network" in Server Serttings
+4.  Load model in LM Studio. Turn on "Serve on Local Network" in Server Settings
 5.  Click the cat! (...or just hit Fetch / Send)
 
 
@@ -143,29 +143,26 @@ Windows:
    2. The “Default_test” list is a short list of a variety of RSS feeds. The purpose is to keep the first RSS pull quick and short, so that you can diagnose whether all the pieces are working the way they should.
 
 5. **In settings, set the following fields.** These will save and persist if you end and restart the program. The default settings will work with most configurations - but you must still enter field #1 yourself:
-   1. **LLM URL:** Copy your LM-Studio server URL here. Make sure `/v1` is included at the end. Examples:
-      1. For local, LAN, or tailscale lan: `http://x.x.x.x:<port>/v1/chat/completions`
-      2. For tailscale https, use https: `https://ca***a.tail2a*****.ts.net/v1/chat/completions`
-   2. **SLACK_WEBHOOK_URL:** Copy your slack Webhook URL here. This is optional: `https://hooks.slack.com/services/........`
-   3. **MAX_TOKENS:** Max tokens worth of characters that will be sent to the LLM for analysis with each pull. As a rule of thumb, 1 token = 4 characters. If you would like to send MORE tokens than your LLM context can accept, then make sure Batch Processing is active (see below). Default is 4000 tokens.
-   4. **MAX_TOKENS_BULK:** Max tokens for a bulk processing report. If bulk processing is turned on (see #6), the program will save all RSS feeds and then, at regular intervals (see #7), send them in bulk [TBC: confirm if batch works here] to the LLM with a unique prompt. This prompt will instruct the LLM to look at ALL the RSS feeds, look for trends, and then send back a single report for that period.
-      1. Default tokens is 4000, but if you use this feature, you will probably want to increase that. 4000 is generally safe for most LLM configurations, though.
-      2. This feature works, although it is more finnicky because you are likely to stress LLM context size limits, VRAM, and processing time. When getting to first use this tool, I recommend turning this feature off.
-   5. **FETCH_INTERVAL:** Enter the number of seconds in-between each RSS feed pull / LLM analysis. The default is 600s (10 minutes).
-      1. NOTE: setting the interval to a time LESS than the time it takes for the program to pull all RSS feeds, send them to the LLM, and for the LLM to send back a reply will result in a backlog (and potentially other glitches). So don’t do that.
-   6. **ITEMS_PER_FEED:** This is the max number of entries that will be pulled for analysis each time the program polls an RSS feed. The default is 50, which is generally higher than you need, and will result in a particularly large first-pull. The program automatically ignores items that were already pulled! At least, I think it does…
-   7. **USE_CHUNKED_MODE:** 1 is yes, 0 is no. Default is 1. If the amount of RSS text pulled is greater than your token allowance (MAX_TOKENS, see #3), the program will break it up into chunks equivalent to the number of *characters* you set in CHUNK_SIZE. Important considerations:
-      1. This lets you search a huge volume of RSS feeds. However, there is a trade-off. The smaller the chunks, the more likely that your LLM will send report the same “event” more than one time, because there’s a good chance that major events will be featured in more than one chunk of RSS feeds. The larger the chunk, the longer the processing time and the greater the chance your LLM will miss something of interest by prioritizing something that is a better match for the topics it is looking for.
-   8. **CHUNK_SIZE:** This is the size in characters – again, CHARACTERS, not tokens – of each chunk. See the description for USE_CHUNKED_MODE for more info.
-      1. Should this have been coded in tokens? Yup. But it’s not. So, for now, just do the math. 4 characters ~ 1 token.
-   9. **WRITE_TO_FILE:** Optional and does not affect use of Shunyanet Sentinel. If turned on, this will write all RSSs pulled to a rolling RSS file. You can then take that file and, outside of ShunyaNet Sentinel, use it to benchmark different LLMs ability to find the info you are looking for, or test and evaluate different prompts. 1 is on, 0 is off. Default is 0. 
-   10. **ANALYSIS_WINDOW:** This is the interval of time for each bulk processing report. See MAX_TOKENS_BULK (#4) for a description of this feature.
-   11. **BULK PROCESSING:** 1 is yes, 0 is no. See separate explanation in (#4 above) for this feature and important considerations. Default is 0.
 
-6. **(In LM-Studio) load your model **of choice and be sure to set its context window to comfortably exceed the value you enter in the TOKENs field of ShunyaNet Sentinel (and bulk processing tokens, if that features is active).
+| Setting | Description | Default | Example / Notes |
+|----------|------------|----------|------------------|
+| **LLM_URL** | URL to your LM Studio (or compatible) server. `/v1` **must** be included at the end. | — | Local/LAN/Tailscale HTTP: `http://x.x.x.x:<port>/v1/chat/completions` <br> Tailscale HTTPS: `https://ca***a.tail2a*****.ts.net/v1/chat/completions` |
+| **SLACK_WEBHOOK_URL** | Optional Slack webhook URL for sending alerts to Slack. | Optional | `https://hooks.slack.com/services/...` |
+| **MAX_TOKENS** | Maximum tokens sent to the LLM per RSS pull. Rule of thumb: **1 token ≈ 4 characters**. If exceeding model context size, enable chunked mode. | 4000 | Increase carefully depending on your LLM's context window. |
+| **MAX_TOKENS_BULK** | Maximum tokens used for bulk processing reports. When bulk processing is enabled, RSS feeds are saved and sent together with a special trend-analysis prompt. | 4000 | Likely needs to be increased for meaningful bulk reports. May stress VRAM and context limits. Recommended to disable bulk mode initially. |
+| **FETCH_INTERVAL** | Time in seconds between RSS pulls and LLM analysis. | 600 (seconds, i.e. 10 min) | Do **not** set lower than total processing time or backlog may occur. |
+| **ITEMS_PER_FEED** | Maximum number of RSS entries pulled per feed per cycle. Previously pulled items are ignored. | 50 | Higher values create a larger first pull. Most RSS feeds do not produce much more than 20 new items every 10 minutes, some much less. |
+| **USE_CHUNKED_MODE** | Enables automatic splitting of RSS content if it exceeds token allowance. `1 = On`, `0 = Off`. | 1 | Prevents context overflow but may duplicate event reporting across chunks. |
+| **CHUNK_SIZE** | Size of each chunk in **characters** (not tokens). | 8000 | Approximate conversion: **4 characters ≈ 1 token**. I REPEAT: THIS IS IN **CHARACTERS**. Should it be in tokens? Probably! But it's not.|
+| **WRITE_TO_FILE** | Optional. Writes all pulled RSS content to a rolling file for external benchmarking, prompt testing, or model comparison. Does **not** affect core Sentinel functionality. `1 = On`, `0 = Off`. | 0 | Useful for offline LLM testing and evaluation. |
+| **ANALYSIS_WINDOW** | Time interval used for each bulk processing report. | 3600 (seconds, i.e. 1h) | Used only when Bulk Processing is enabled. |
+| **BULK_PROCESSING** | Enables periodic bulk RSS trend reports. `1 = On`, `0 = Off`. | 0 | Sends accumulated RSS feeds to the LLM for a single trend analysis report. May increase processing load significantly. |
+
+
+6. **(In LM-Studio) load your model** of choice and be sure to set its context window to comfortably exceed the value you enter in the TOKENs field of ShunyaNet Sentinel (and bulk processing tokens, if that features is active).
       1. Although this is designed/tested with LMStudio in mind, it should work with any OpenAI-compatible /v1/chat/completions endpoint.
 
-7. Done! - Click the cat! (...or click "Fetch / Send", or just wait the number of seconds you set in INTERVAL)
+7. **Done! - Now click the cat!** (...or hit "Fetch / Send", or just wait the number of seconds you set in FETCH_INTERVAL)
 
 **NOTE:** I recommend you keep it simple for the first run. Use the default settings & make sure it works. Then, tweak context & RSS feeds. Then, adjust the prompt. I’d be curious to see folks’ improved prompts….
 
@@ -193,7 +190,7 @@ This project is licensed under the **MIT License**.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, subject to the following conditions:
 
-1. **Attribution:** You must give appropriate credit to the original author (ShunyaGuest / EverythingsComputer), provide a link to the repository, and indicate if changes were made.
+1. **Attribution:** You must give appropriate credit to the original author (ShunyaNet / EverythingsComputer), provide a link to the repository, and indicate if changes were made.
 2. **No Warranty:** The software is provided "as is", without warranty of any kind, express or implied.
 
 ### Dependencies
