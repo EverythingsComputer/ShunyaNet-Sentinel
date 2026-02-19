@@ -186,7 +186,7 @@ Alpha
 
 This project is licensed under the **Apache 2.0**.
 
-Attribution: ShynyaNet / EverythingsComputer
+Attribution: ShunyaNet / EverythingsComputer
 
 **No Warranty:** The software is provided "as is", without warranty of any kind, express or implied.
 
