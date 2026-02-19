@@ -186,16 +186,15 @@ Alpha
 
 # License
 
-This project is licensed under the **MIT License**.
+This project is licensed under the **Apache 2.0**.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, subject to the following conditions:
+Attribution: ShynyaNet / EverythingsComputer
 
-1. **Attribution:** You must give appropriate credit to the original author (ShunyaNet / EverythingsComputer), provide a link to the repository, and indicate if changes were made.
-2. **No Warranty:** The software is provided "as is", without warranty of any kind, express or implied.
+**No Warranty:** The software is provided "as is", without warranty of any kind, express or implied.
 
 ### Dependencies
 
-This project uses the following third-party libraries. Please review their licenses when using this project:
+This project uses the following third-party libraries. Please review their licenses when using, distributiong, and/or altering this project:
 
 - **PySide6** — LGPL  
 - **feedparser** — BSD  
