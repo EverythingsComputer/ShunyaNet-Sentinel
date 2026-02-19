@@ -1,0 +1,23 @@
+# Virtual environment
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# macOS junk
+.DS_Store
+
+# Logs
+*.log
+
+# Environment variables
+.env
+
+# Runtime state files
+rolling_rss.txt
+
+# Build outputs (if using PyInstaller)
+build/
+dist/
+*.spec

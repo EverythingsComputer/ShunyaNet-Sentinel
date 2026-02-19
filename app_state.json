@@ -1,0 +1,29 @@
+{
+  "active_profile": "General Conflict V1",
+  "topics": [
+    "Regional or national air traffic disruption",
+    "Transcontinental internet outage",
+    "Major cyber intrusion",
+    "Major terrorist attack",
+    "Major bombing or explosion",
+    "Declaration of hostilities or war",
+    "Border closure",
+    "Power grid instability",
+    "Emergency alert broadcast"
+  ],
+  "settings": {
+    "LMSTUDIO_URL": "http://x.x.x.x:<port>/v1/chat/completions",
+    "SLACK_WEBHOOK_URL": "\n",
+    "MAX_TOKENS": 4000,
+    "MAX_TOKENS_BULK": 4000,
+    "FETCH_INTERVAL": 600,
+    "ITEMS_PER_FEED": 50,
+    "USE_CHUNKED_MODE": "1",
+    "CHUNK_SIZE": 8000,
+    "WRITE_TO_FILE": "0",
+    "ANALYSIS_WINDOW": 3600,
+    "BULK_ANALYSIS": "0"
+  },
+  "data_source_file": "",
+  "prompt_file": "default_prompt.txt"
+}
