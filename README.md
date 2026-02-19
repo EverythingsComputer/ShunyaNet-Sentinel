@@ -1,3 +1,6 @@
+<img width="1642" height="946" alt="ShunyaNetSentinelAppGraphicV1" src="https://github.com/user-attachments/assets/f1348720-4d36-4bfa-b8d6-ea92bdfd0a9f" />
+
+
 # ShunyaNet Sentinel
 
 ShunyaNet Sentinel is a lightweight monitoring and analysis program
@@ -9,18 +12,21 @@ be served:
 
 -   On the same machine
 -   On the same local network
--   Over the internet using your solution of choice (reverse proxy, VPS,
-    Tailscale, etc.)
+-   Over the internet using your solution of choice (e.g., Tailscale)
 
-For alerting, the program utilizes Slack Webhooks, enabling push
-notifications to be sent to a mobile device running Slack.
+For alerting, the program also utilizes Slack Webhooks, enabling push
+notifications to be sent to a mobile device running Slack. Notifications are also shown in the program GUI.
 
-The program is compatible with: 
-- Linux
-- macOS
-- Windows*
+The ShunyaNet Sentinel is compatible with the latest versions of Linux, MacOS, and Windows*
 
-\*Strongly suggest macOS or Linux. See Known Issues below.
+The quality of reporting and analysis will be heavily influenced by the prompt, context size, RSS feeds (garbage in, garbage out...) and LLM chosen. It's recommended you turn off thinking features. Models that seem to have performed well, include:
+- GPT OSS 20b (thinking set to LOW in LMStudio)
+- GPT OSS 120b (prob. overkill)
+- Hermes 4 70b
+- Gemma 3 27b it abliterated (mlabonne's version)
+- Qwen3 32b and/or VL 30b (i forget which...)
+
+*Strongly suggest macOS or Linux. See Known Issues below.
 
 ------------------------------------------------------------------------
 
@@ -31,7 +37,7 @@ The program is compatible with:
 3.  Sentinel pulls RSS feeds at user-configured intervals of time
 4.  RSS content is sent to the user-provided LLM server
 5.  The LLM reviews feeds and reports back to Sentinel on relevant topics of interest
-6.  If Slack webhook is configured, alerts are forwarded
+6.  If Slack webhook is configured, alerts are forwarded and notifications can be accessed on ios/android (often with live links to referenced RSS content)
 7.  Optional bulk analysis identifies trends over time
 
 ------------------------------------------------------------------------
@@ -42,13 +48,13 @@ The program is compatible with:
 
 -   Periodic polling of RSS feeds
 -   Deduplication and timestamp tracking
--   Handles slow or malformed feeds
+-   Handles slow or malformed feeds (...more work to be done here)
 
 ## LLM-Based Analysis (Optional)
 
--   Sends feed items to local LLM endpoint
+-   Sends RSS feed items to local LLM endpoint
 -   Prompt-driven classification, summarization, filtering
--   Works with any OpenAI-compatible `/v1/chat/completions` endpoint
+-   Works with any OpenAI-compatible `/v1/chat/completions` endpoint, designed for LMStudio
 
 ## Alerting / Signal Generation
 
@@ -71,7 +77,8 @@ The program is compatible with:
     -   requests==2.31.0
     -   python-dateutil==2.9.0.post0
 
-Additional: - LM Studio-hosted LLM (recommended) - Or any
+Additional: 
+- LM Studio-hosted LLM (recommended) - Or any
 OpenAI-compatible `/v1/chat/completions` endpoint
 
 ------------------------------------------------------------------------
@@ -80,7 +87,7 @@ OpenAI-compatible `/v1/chat/completions` endpoint
 
 ## 1. Clone Repository
 
-    git clone https://github.com/yourusername/ShunyaNet-Sentinel.git
+    git clone https://github.com/EverythingsComputer/ShunyaNet-Sentinel.git
     cd ShunyaNet-Sentinel
 
 ## 2. (Strongly Recommended) Create Virtual Environment
@@ -124,15 +131,18 @@ Windows:
 
 # Full Instructions & Config
 
-1. Enter topics of interest, or load one of the default lists provided. Up to 10 topics may be added to each list.
-2. Click “Load Prompt File” to load a prompt file. A default prompt is provided (`default_prompt.txt`).
+1. **Enter topics of interest**, or load one of the default lists provided. Up to 10 topics may be added to each list.
+
+3. **Click “Load Prompt File” to load a prompt file.** A default prompt is provided (`default_prompt.txt`).
    1. You’re encouraged to tweak and revise this prompt - it may substantially improve the quality of reporting. There is A LOT of room for customization here.
    2. There is a 'default_prompt-always-reply.txt' included. This prompt requires the LLM choose one news item to report back on, even if no topics are triggered. You can use this to debug/test the LLM's analysis.
-3. Click “Load Data Source File” to load an RSS list. Two default lists are provided. A short “Default_test” list and a longer “Default_long” list, which focuses on world-wide news and breaking news.
+
+4. **Click “Load Data Source File” to load an RSS list.** Two default lists are provided. A short “Default_test” list and a longer “Default_long” list, which focuses on world-wide news and breaking news.
    1. Tailoring your own lists to your region or topics of interest will significantly affect the output of information. An example region-focused list that I used for a recent trip is provided ('India_regional_example-v1.txt').
    2. Reddit and blue-sky can be easily converted into RSS feeds. Programs, such as RSSBridge, can also generate RSS feeds from websites that don’t have one.
    2. The “Default_test” list is a short list of a variety of RSS feeds. The purpose is to keep the first RSS pull quick and short, so that you can diagnose whether all the pieces are working the way they should.
-4. In settings, set the following fields. These will save and persist if you end and restart the program. The default settings will work with most configurations - but you must still enter field #1 yourself:
+
+5. **In settings, set the following fields.** These will save and persist if you end and restart the program. The default settings will work with most configurations - but you must still enter field #1 yourself:
    1. **LLM URL:** Copy your LM-Studio server URL here. Make sure `/v1` is included at the end. Examples:
       1. For local, LAN, or tailscale lan: `http://x.x.x.x:<port>/v1/chat/completions`
       2. For tailscale https, use https: `https://ca***a.tail2a*****.ts.net/v1/chat/completions`
@@ -151,9 +161,11 @@ Windows:
    9. **WRITE_TO_FILE:** Optional and does not affect use of Shunyanet Sentinel. If turned on, this will write all RSSs pulled to a rolling RSS file. You can then take that file and, outside of ShunyaNet Sentinel, use it to benchmark different LLMs ability to find the info you are looking for, or test and evaluate different prompts. 1 is on, 0 is off. Default is 0. 
    10. **ANALYSIS_WINDOW:** This is the interval of time for each bulk processing report. See MAX_TOKENS_BULK (#4) for a description of this feature.
    11. **BULK PROCESSING:** 1 is yes, 0 is no. See separate explanation in (#4 above) for this feature and important considerations. Default is 0.
-   5. (In LM-Studio) load your model of choice and be sure to set its context window to comfortably exceed the value you enter in the TOKENs field of ShunyaNet Sentinel (and bulk processing tokens, if that features is active).
+
+6. **(In LM-Studio) load your model **of choice and be sure to set its context window to comfortably exceed the value you enter in the TOKENs field of ShunyaNet Sentinel (and bulk processing tokens, if that features is active).
       1. Although this is designed/tested with LMStudio in mind, it should work with any OpenAI-compatible /v1/chat/completions endpoint.
-   6. Done! - Now click “Pull / Fetch,” click the cat, or just wait the number of seconds you set in INTERVAL.
+
+7. Done! - Click the cat! (...or click "Fetch / Send", or just wait the number of seconds you set in INTERVAL)
 
 **NOTE:** I recommend you keep it simple for the first run. Use the default settings & make sure it works. Then, tweak context & RSS feeds. Then, adjust the prompt. I’d be curious to see folks’ improved prompts….
 
