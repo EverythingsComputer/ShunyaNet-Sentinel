@@ -143,7 +143,7 @@ Windows:
 5. **In settings, set the following fields.** These will save and persist if you end and restart the program. The default settings will work with most configurations - but you must still enter field #1 yourself:
 
 | Setting | Description | Default | Example / Notes |
-|----------|------------|----------|------------------|
+|----------|---------------------------|----------|------------------|
 | **LLM_URL** | URL to your LM Studio (or compatible) server. `/v1` **must** be included at the end. | — | Local/LAN/Tailscale HTTP: `http://x.x.x.x:<port>/v1/chat/completions` <br> Tailscale HTTPS: `https://ca***a.tail2a*****.ts.net/v1/chat/completions` |
 | **SLACK_WEBHOOK_URL** | Optional Slack webhook URL for sending alerts to Slack. | Optional | `https://hooks.slack.com/services/...` |
 | **MAX_TOKENS** | Maximum tokens sent to the LLM per RSS pull. Rule of thumb: **1 token ≈ 4 characters**. If exceeding model context size, enable chunked mode. | 4000 | Increase carefully depending on your LLM's context window. |
