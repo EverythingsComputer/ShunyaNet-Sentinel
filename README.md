@@ -3,23 +3,21 @@
 
 # ShunyaNet Sentinel
 
-ShunyaNet Sentinel is a lightweight monitoring and analysis program
-designed to ingest RSS feeds at regular intervals and bundle them for
-analysis by a Large Language Model (LLM) for summarization or alerting.
+ShunyaNet Sentinel is a lightweight, cyberpunk-themed program that ingests RSS feeds (e.g., breaking news, social media), sends them to an LLM for analysis, and delivers alerts and summary reports directly to the GUI and Slack at regular intervals.
 
-The project is built to utilize an LLM hosted using LM Studio, which can
+The project is built to utilize an LLM hosted using LMStudio, which can
 be served:
 
 -   On the same machine
 -   On the same local network
 -   Over the internet using your solution of choice (e.g., Tailscale)
 
-For alerting, the program also utilizes Slack Webhooks, enabling push
-notifications to be sent to a mobile device running Slack. Notifications are also shown in the program GUI.
+For alerting, the program utilizes Slack Webhooks, enabling push
+notifications to be sent to a mobile device.
 
 The ShunyaNet Sentinel is compatible with the latest versions of Linux, MacOS, and Windows*
 
-The quality of reporting and analysis will be heavily influenced by the prompt, context size, RSS feeds (garbage in, garbage out...) and LLM chosen. It's recommended you turn off thinking features. Models that seem to have performed well, include:
+The quality of reporting and analysis is influenced by the prompt, context size, RSS feeds and LLM chosen. It's recommended you turn off thinking features. Models that seem to have performed well and generally follow instructions, include:
 - GPT OSS 20b (thinking set to LOW in LMStudio)
 - GPT OSS 120b (prob. overkill)
 - Hermes 4 70b
