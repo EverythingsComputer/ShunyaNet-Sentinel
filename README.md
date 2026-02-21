@@ -175,6 +175,7 @@ Issues/Warnings:
 -   Poor configuration choices can overload your LLM or hardware. Make sure your LLM can reliably process and reply faster than your RSS pull interval.
 -   LMStudio recently implemented the ability ("parallel") for an LLM to accept and process more than one prompt at once. Turn this off until you have tested it with this app, or else you can get stuck with time-out errors and a backlog of ever-continuous prompt processing.  
 -   An error message is sometimes thrown when the app is closed on MacOS, maybe also Linux. It doesn’t seem to affect how the program operates or its stability, though. I fixed this once, but it came back. I will fix it again …at some point.
+-   I had to remove a few urls from the default list because they were slow (e.g., FEMA's...) or seemingly broken now (e.g., NRC's...).
 
 Suggestions:
 -   The first fetch / send is sort-of a stress test: it pulls the maximum feed volume for your settings and thus is likely to contain stale information. However, this is a good way to test whether everything is working, to understand your longest prompt processing time, and to get a sample of how your prompt, rss list, and topic list will perform.
