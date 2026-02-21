@@ -1,10 +1,6 @@
 https://www.war.gov/DesktopModules/ArticleCS/RSS.ashx?max=10&ContentType=1&Site=945
 https://www.war.gov/DesktopModules/ArticleCS/RSS.ashx?ContentType=2&Site=945&max=10
 https://www.spc.noaa.gov/products/spcrss.xml
-https://www.politico.com/rss/politicopicks.xml
-https://www.nrc.gov/public-involve/rss?feed=plant-status
-https://www.nrc.gov/public-involve/rss?feed=news
-https://www.nrc.gov/public-involve/rss?feed=event
 https://www.newswise.com/legacy/feed/channels.php?channel=6561
 https://www.newswise.com/legacy/feed/channels.php?channel=6402
 https://www.newswise.com/legacy/feed/channels.php?channel=6238
@@ -13,15 +9,9 @@ https://www.newswise.com/legacy/feed/channels.php?channel=50
 https://www.newswise.com/legacy/feed/channels.php?channel=134
 https://www.lemonde.fr/en/rss/une.xml
 https://www.fema.gov/news/news_region-x.rss
-https://www.fema.gov/news/news_region-viii.rss
-https://www.fema.gov/news/news_region-vii.rss
-https://www.fema.gov/news/news_region-vi.rss
-https://www.fema.gov/news/news_region-v.rss
 https://www.fema.gov/news/news_region-ix.rss
-https://www.fema.gov/news/news_region-iv.rss
 https://www.fema.gov/news/news_region-iii.rss
 https://www.fema.gov/news/news_region-ii.rss
-https://www.fema.gov/news/news_region-i.rss
 https://www.faasafety.gov/RSS/NoticesRSS.aspx
 https://www.faasafety.gov/RSS/NewsRSS.aspx
 https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml
@@ -43,4 +33,5 @@ http://www.euronews.com/rss
 http://rss.cnn.com/rss/cnn_world.rss
 http://rss.cnn.com/rss/cnn_us.rss
 http://rss.cnn.com/rss/cnn_topstories.rss
+
 http://feeds.bbci.co.uk/news/rss.xml
