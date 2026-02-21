@@ -26,6 +26,8 @@ The quality of reporting and analysis is influenced by the prompt, context size,
 
 *Strongly suggest macOS or Linux. See Known Issues below.
 
+See Tips, Tricks, and Known Issues at the end for important info!
+
 ------------------------------------------------------------------------
 
 # High-Level Workflow
@@ -56,7 +58,7 @@ The quality of reporting and analysis is influenced by the prompt, context size,
 
 ## Alerting / Signal Generation
 
--   Slack webhook support
+-   Slack webhook support (for webhook setup info, go here: https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/) 
 -   Structured output suitable for automation
 -   Designed for integration into larger workflows
 
@@ -166,13 +168,19 @@ Windows:
 
 ------------------------------------------------------------------------
 
-# Known Issues
+# Tips, Tricks, and Known Issues
 
--   Poor configuration choices can overload your LLM or hardware
--   Some RSS feeds may time out and or pull very slowly (i'm noticing this with fema.gov and NRc.gov. hmm...). If certain URLs slow down your pull, remove them from the list. I will try to improve handling of this in a future update.
--   Sentinel spontaneously quits on Windows 11 after a few hours. No idea why. No errors thrown. Doesn’t have this problem on Mac or Linux. If you must use Windows: Until I fix this, I recommend you set up a virtual box with Linux/ubuntu (or suggest a better solution, if you have one!). Note, this program will run fine on a raspberry pi!
--   Error message thrown when closed on MacOS, maybe also Linux. It doesn’t seem to affect how the program operates or its stability, though. I fixed this once, but it came back. I will fix it again …at some point.
--   Some "thinking" models produce malformed replies or get stuck in loops. I recommend turning thinking off first. 
+Issues/Warnings: 
+-   Sentinel spontaneously quits on Windows 11 after a few hours. No idea why. No errors thrown. Doesn’t have this problem on Mac or Linux - and maybe your system will be different! If you encounter this issue and must use Windows, then I recommend you set up a virtual box with Linux/ubuntu (or suggest a better solution, if you have one!). Note, this program will run fine on a raspberry pi!
+-   Poor configuration choices can overload your LLM or hardware. Make sure your LLM can reliably process and reply faster than your RSS pull interval.
+-   LMStudio recently implemented the ability ("parallel") for an LLM to accept and process more than one prompt at once. Turn this off until you have tested it with this app, or else you can get stuck with time-out errors and a backlog of ever-continuous prompt processing.  
+-   An error message is sometimes thrown when the app is closed on MacOS, maybe also Linux. It doesn’t seem to affect how the program operates or its stability, though. I fixed this once, but it came back. I will fix it again …at some point.
+
+Suggestions:
+-   The first fetch / send is sort-of a stress test: it pulls the maximum feed volume for your settings and thus is likely to contain stale information. However, this is a good way to test whether everything is working, to understand your longest prompt processing time, and to get a sample of how your prompt, rss list, and topic list will perform.
+-   Some "thinking" models produce malformed replies or get stuck in loops. I recommend turning thinking off first. Thinking set to "low" works fine for GPT OSS.
+-   There are all sorts of tricks to broadcast feeds that don’t have RSS by default (e.g., look into RSSBridge). Also, some social sites can be converted into RSS feeds automatically (e.g., adding .rss to a reddit URL, or /RSS to a bluesky profile URL.)
+-   Some sites, reddit specifically, will rate-limit your RSS pulls. To minimize this issue, I strongly recommend you *randomize the order of your RSS url list* so that you do not hit the same site too fast.
 
 ------------------------------------------------------------------------
 
