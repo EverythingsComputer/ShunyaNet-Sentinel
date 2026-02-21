@@ -85,7 +85,7 @@ OpenAI-compatible `/v1/chat/completions` endpoint
 
 # Installation
 
-## 1. Clone Repository
+## 1. Clone Repository (...Or Download the Zip) & Navigate to the Folder
 
     git clone https://github.com/EverythingsComputer/ShunyaNet-Sentinel.git
     cd ShunyaNet-Sentinel
