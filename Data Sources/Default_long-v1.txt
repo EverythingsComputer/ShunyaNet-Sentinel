@@ -12,8 +12,6 @@ https://feeds.bbci.co.uk/news/world/asia/rss.xml
 https://bsky.app/profile/smith.senate.gov/rss
 https://www.newswise.com/legacy/feed/channels.php?channel=134
 https://www.reddit.com/r/China/new/.rss
-https://www.politico.com/rss/politicopicks.xml
-https://www.fema.gov/news/news_region-v.rss
 https://bsky.app/profile/archive.org/rss
 https://feeds.bbci.co.uk/news/northern_ireland/rss.xml
 https://bsky.app/profile/meidastouch.com/rss
@@ -25,7 +23,6 @@ https://bsky.app/profile/bloomberg.com/rss
 https://bsky.app/profile/governorwalz.mn.gov/rss
 https://feeds.bbci.co.uk/news/scotland/rss.xml
 https://bsky.app/profile/bellingcat.com/rss
-https://www.nrc.gov/public-involve/rss?feed=event
 https://bsky.app/profile/avindman.bsky.social/rss
 https://bsky.app/profile/govpritzker.illinois.gov/rss
 https://www.reddit.com/r/myanmar/new/.rss
@@ -48,10 +45,8 @@ https://bsky.app/profile/ndtv.com/rss
 https://bsky.app/profile/petebuttigieg.bsky.social/rss
 https://www.reddit.com/r/UkraineRussiaReport/new/.rss
 https://bsky.app/profile/barackobama.bsky.social/rss
-https://www.fema.gov/news/news_region-vii.rss
 https://www.newswise.com/legacy/feed/channels.php?channel=60
 https://www.newswise.com/legacy/feed/channels.php?channel=6402
-https://www.fema.gov/news/news_region-vi.rss
 https://feeds.bbci.co.uk/news/world/europe/rss.xml
 https://www.faasafety.gov/RSS/NewsRSS.aspx
 https://bsky.app/profile/youranoncentral.bsky.social/rss
@@ -62,7 +57,6 @@ https://feeds.bbci.co.uk/news/world/africa/rss.xml
 https://bsky.app/profile/theintercept.com/rss
 https://bsky.app/profile/nycsouthpaw.bsky.social/rss
 https://www.reddit.com/r/UkraineWarVideoReport/new/.rss
-http://www.huffingtonpost.co.uk/news/terrorism/feed/
 https://bsky.app/profile/intelpointalert.bsky.social/rss
 https://www.reddit.com/r/NorthKoreaNews/new/.rss
 https://gdacs.org/xml/rss.xml
@@ -85,15 +79,12 @@ https://www.fema.gov/news/news_region-iii.rss
 https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.atom
 https://www.newswise.com/legacy/feed/channels.php?channel=6561
 https://bsky.app/profile/massgovernor.bsky.social/rss
-https://www.fema.gov/news/news_region-iv.rss
 https://bsky.app/profile/govwesmoore.bsky.social/rss
 https://bsky.app/profile/radiofreetom.bsky.social/rss
 https://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml
-https://www.nrc.gov/public-involve/rss?feed=news
 http://feeds.bbci.co.uk/news/rss.xml
 https://www.reddit.com/r/Colombia/new/.rss
 https://bsky.app/profile/governorferguson.bsky.social/rss
-https://www.fema.gov/news/news_region-viii.rss
 https://www.newswise.com/legacy/feed/channels.php?channel=50
 https://bsky.app/profile/tinakotek.bsky.social/rss
 https://bsky.app/profile/govdanmckee.bsky.social/rss
@@ -122,7 +113,6 @@ https://bsky.app/profile/govevers.wisconsin.gov/rss
 https://bsky.app/profile/hakeem-jeffries.bsky.social/rss
 https://feeds.nbcnews.com/nbcnews/public/news
 https://bsky.app/profile/governor.pa.gov/rss
-https://www.fema.gov/news/news_region-i.rss
 https://www.fema.gov/news/news_region-x.rss
 https://www.reddit.com/r/argentina/new/.rss
 https://www.reddit.com/r/afghanistan/new/.rss
@@ -138,5 +128,4 @@ https://www.reddit.com/r/ukraine/new/.rss
 http://rss.cnn.com/rss/cnn_topstories.rss
 https://bsky.app/profile/warren.senate.gov/rss
 https://www.reddit.com/r/cuba/new/.rss
-https://www.nrc.gov/public-involve/rss?feed=plant-status
 https://bsky.app/profile/apnews.com/rss
