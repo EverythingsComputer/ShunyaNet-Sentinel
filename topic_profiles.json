@@ -9,5 +9,16 @@
     "Border closure",
     "Power grid instability",
     "Emergency alert broadcast"
+  ],
+  "Iran Conflict V1": [
+    "Disruption of Air Traffic in the Middle East or over Iran",
+    "Widespread internet outages in Iran",
+    "Major cyber attack in Iran",
+    "Reports of ballistic missile launches across the following countries: Iran Israel Iraq Jordan Saudi Arabia Qatar Kuwait Syria",
+    "Marine conflict in the Strait of Hormus",
+    "Declaration of hostilities or war involving Iran",
+    "Explosions reported across Iran",
+    "new closure of diplomatic facilities or evacuation of diplomatic staff from middle eastern countries",
+    "Emergency alert broadcasts in the Middle East"
   ]
 }
