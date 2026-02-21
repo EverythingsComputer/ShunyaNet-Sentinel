@@ -66,6 +66,7 @@ else:
 # Load assets once
 assets = load_assets()
 
+# Example Default Feeds - this is replaced with the feeds in your .txt list, when it is loaded. NRC and FEMA lists
 FEEDS = [
     "http://rss.cnn.com/rss/cnn_topstories.rss",
     "http://rss.cnn.com/rss/cnn_world.rss",
@@ -73,25 +74,21 @@ FEEDS = [
     "http://feeds.bbci.co.uk/news/rss.xml",
     "http://www.euronews.com/rss",
     "https://feeds.bbci.co.uk/news/world/latin_america/rss.xml",
-    "https://www.fema.gov/news/news_region-x.rss",
     "https://www.spc.noaa.gov/products/spcrss.xml",
-    "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.atom",
-    "https://www.nrc.gov/public-involve/rss?feed=event",
-    "https://www.nrc.gov/public-involve/rss?feed=news",
-    "https://www.nrc.gov/public-involve/rss?feed=plant-status"
+    "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.atom"
 ]
 
-
-LMSTUDIO_URL = "YOUR URL HERE/v1/chat/completions"
-MAX_TOKENS = 3000
-MAX_TOKENS_BULK = 4000
-FETCH_INTERVAL = 600
-ITEMS_PER_FEED = 50
+#These some of these values are immediately overwritten by the app_state.json file, which offers improved default values
+LMSTUDIO_URL = "YOUR URL HERE/v1/chat/completions" #app_state overwrites 
+MAX_TOKENS = 3000 #app_state overwrites 
+MAX_TOKENS_BULK = 4000 #app_state overwrites 
+FETCH_INTERVAL = 600 #app_state overwrites 
+ITEMS_PER_FEED = 50 #app_state overwrites 
 MAX_TOPICS = 10
 MAX_PROFILES = 20
 ROLLING_FILE = os.path.join(APP_DIR, "rolling_rss.txt")
 PROFILE_FILE = os.path.join(APP_DIR, "topic_profiles.json")
-SLACK_WEBHOOK_URL = "YOUR SLACK WEBHOOK URL HERE"
+SLACK_WEBHOOK_URL = "YOUR SLACK WEBHOOK URL HERE" #app_state overwrites 
 STATE_FILE = os.path.join(APP_DIR, "app_state.json")
 
 
