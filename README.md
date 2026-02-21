@@ -110,11 +110,11 @@ Windows (PowerShell):
 
 macOS / Linux:
 
-    python3 shunyanet_sentinel.py
+    python3 ShunyaNet_Sentinel.py
 
 Windows:
 
-    python shunyanet_sentinel.py
+    python ShunyaNet_Sentinel.py
 
 ------------------------------------------------------------------------
 
