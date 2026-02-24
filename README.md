@@ -5,12 +5,7 @@
 
 ShunyaNet Sentinel is a lightweight, cyberpunk-themed program that ingests RSS feeds (e.g., breaking news, social media), sends them to an LLM for analysis, and delivers alerts and summary reports directly to the GUI and Slack at regular intervals.
 
-The project is built to utilize an LLM hosted using LMStudio, which can
-be served:
-
--   On the same machine
--   On the same local network
--   Over the internet using your solution of choice (e.g., Tailscale)
+The project is built to utilize an LLM hosted locally on the same machine or network (e.g., with Tailscale) using LMStudio or **Ollama (02/23 Update)**. It will also work with an **OpenAI API key (02/23 Update)**. 
 
 For alerting, the program utilizes Slack Webhooks, enabling push
 notifications to be sent to a mobile device.
@@ -52,7 +47,7 @@ See Tips, Tricks, and Known Issues at the end for important info!
 
 ## LLM-Based Analysis (Optional)
 
--   Sends RSS feed items to local LLM endpoint
+-   Sends RSS feed items to local/api LLM endpoint
 -   Prompt-driven classification, summarization, filtering
 -   Works with any OpenAI-compatible `/v1/chat/completions` endpoint, designed for LMStudio
 
@@ -77,9 +72,11 @@ See Tips, Tricks, and Known Issues at the end for important info!
     -   requests==2.31.0
     -   python-dateutil==2.9.0.post0
 
-Additional: 
-- LM Studio-hosted LLM (recommended) - Or any
-OpenAI-compatible `/v1/chat/completions` endpoint
+LLM hosted via: 
+- LM Studio-hosted (recommended)
+- Ollama 
+- OpenAI api key
+- (a few more to come soon)
 
 ------------------------------------------------------------------------
 
@@ -118,49 +115,79 @@ Windows:
 
 ------------------------------------------------------------------------
 
-# Quick Start
+# Quick Start (with LMStudio) (UPDATED 02/23)
 
 1.  Click "Load Prompt File" and load `default_prompt.txt`
 2.  Click "Load Data Source File" and Load `Default_test` RSS list
-3.  Open "Additional Settings" and enter LLM URL into LMSTUDIO_URL (e.g., `http://x.x.x.x:<port>/v1/chat/completions`)
-4.  Load model in LM Studio. Turn on "Serve on Local Network" in Server Settings
-5.  Click the cat! (...or just hit Fetch / Send)
-
+3.  Open "Additional Settings" and enter:
+        *  LLM_PROVIDER = lmstudio
+        *  LLM_BASE_URL = <YOUR LMSTUDIO SERVER IP, e.g.: http://x.x.x.x:port/v1>
+        *  LLM_MODEL = <I recommend you leave this blank. Just follow Step 4>
+        *  API_KEY = <leave blank, unless you set one for your server>
+4. Load model in LM Studio. Turn on "Serve on Local Network" in Server Settings. Tips: 
+        * In the "Load Model"/model selection window, turn on "Manually choose model load parameters"
+        * In your model's load parameters window, Set Max Concurrent Predictions to 1 (for now)
+        * In the inference tab, turn off or minimize thinking, if that setting is available.
+        * A model of moderate size that works well: gpt-oss-20b. Thinking set to "low"
+11. Click the cat! (...or just hit Fetch / Send)
 
 ------------------------------------------------------------------------
 
-# Full Instructions & Config
+# Full Instructions & Config (UPDATED 02/23)
 
 1. **Enter topics of interest**, or load one of the default lists provided. Up to 10 topics may be added to each list.
 
 3. **Click “Load Prompt File” to load a prompt file.** A default prompt is provided (`default_prompt.txt`).
    1. You’re encouraged to tweak and revise this prompt - it may substantially improve the quality of reporting. There is A LOT of room for customization here.
-   2. There is a 'default_prompt-always-reply.txt' included. This prompt requires the LLM choose one news item to report back on, even if no topics are triggered. You can use this to debug/test the LLM's analysis.
+   2. There is a 'default_prompt-always-reply.txt' included. This prompt requires the LLM choose one RSS feed item to report back on, even if no topics are triggered. You can use this to debug/test the LLM's analysis.
 
 4. **Click “Load Data Source File” to load an RSS list.** Two default lists are provided. A short “Default_test” list and a longer “Default_long” list, which focuses on world-wide news and breaking news.
    1. Tailoring your own lists to your region or topics of interest will significantly affect the output of information. An example region-focused list that I used for a recent trip is provided ('India_regional_example-v1.txt').
    2. Reddit and blue-sky can be easily converted into RSS feeds. Programs, such as RSSBridge, can also generate RSS feeds from websites that don’t have one.
    2. The “Default_test” list is a short list of a variety of RSS feeds. The purpose is to keep the first RSS pull quick and short, so that you can diagnose whether all the pieces are working the way they should.
 
-5. **In settings, set the following fields.** These will save and persist if you end and restart the program. The default settings will work with most configurations - but you must still enter field #1 yourself:
+5. **In "Additional Settings", set the following fields.** These will save and persist if you end and restart the program. The default settings will work with most configurations - but you must still enter field #1 yourself:
 
 | Setting | Description | Default | Example / Notes |
 |----------|---------------------------|----------|------------------|
-| **LLM_URL** | URL to your LM Studio (or compatible) server. `/v1` **must** be included at the end. | — | Local/LAN/Tailscale HTTP: `http://x.x.x.x:<port>/v1/chat/completions` <br> Tailscale HTTPS: `https://ca***a.tail2a*****.ts.net/v1/chat/completions` |
+| **LLM_PROVIDER** | SEE NEXT STEP | — | — |
+| **LLM_BASE_URL** | SEE NEXT STEP | — | — |
+| **LLM_MODEL** | SEE NEXT STEP | — | — |
+| **LLM_API_KEY** | SEE NEXT STEP | — | — |
 | **SLACK_WEBHOOK_URL** | Optional Slack webhook URL for sending alerts to Slack. | Optional | `https://hooks.slack.com/services/...` |
-| **MAX_TOKENS** | Maximum tokens sent to the LLM per RSS pull. Rule of thumb: **1 token ≈ 4 characters**. If exceeding model context size, enable chunked mode. | 4000 | Increase carefully depending on your LLM's context window. |
-| **MAX_TOKENS_BULK** | Maximum tokens used for bulk processing reports. When bulk processing is enabled, RSS feeds are saved and sent together with a special trend-analysis prompt. | 4000 | Likely needs to be increased for meaningful bulk reports. May stress VRAM and context limits. Recommended to disable bulk mode initially. |
+| **MAX_INPUT_TOKENS** | Maximum tokens sent to the LLM per RSS pull. Rule of thumb: **1 token ≈ 4 characters**. If exceeding model context size, enable chunked mode. | 4000 | Increase carefully depending on your LLM's context window. |
+| **MAX_OUTPUT_TOKENS** | Maximum tokens the LLM will send back in its reply. (note: this is the max/cap, not the target!) | 4000 | Recommend you do not change. 4000 is probaly too much breathing room, to be honest |
+| **MAX_INPUT_TOKENS_BULK** | Maximum tokens length of RSS feeds sent to the LLM for bulk processing reports. When bulk processing is enabled, RSS feeds are saved and sent together with a special trend-analysis prompt (hard-coded prompt, for now). Chunks are never used for this, so dont exceed your context limit | 4000 | Likely needs to be increased for meaningful bulk reports. May stress VRAM and context limits. Recommended you disable bulk mode initially. |
+| **MAX_OUTPUT_TOKENS_BULK** | Maximum tokens length of the bulk processing report itself. | 4000 | May need to be increased for meaningful bulk reports. May stress VRAM and context limits. Recommended to disable bulk mode initially. |
 | **FETCH_INTERVAL** | Time in seconds between RSS pulls and LLM analysis. | 600 (seconds, i.e. 10 min) | Do **not** set lower than total processing time or backlog may occur. |
 | **ITEMS_PER_FEED** | Maximum number of RSS entries pulled per feed per cycle. Previously pulled items are ignored. | 50 | Higher values create a larger first pull. Most RSS feeds do not produce much more than 20 new items every 10 minutes, some much less. |
 | **USE_CHUNKED_MODE** | Enables automatic splitting of RSS content if it exceeds token allowance. `1 = On`, `0 = Off`. | 1 | Prevents context overflow but may duplicate event reporting across chunks. |
 | **CHUNK_SIZE** | Size of each chunk in **characters** (not tokens). | 8000 | Approximate conversion: **4 characters ≈ 1 token**. I REPEAT: THIS IS IN **CHARACTERS**. Should it be in tokens? Probably! But it's not.|
 | **WRITE_TO_FILE** | Optional. Writes all pulled RSS content to a rolling file for external benchmarking, prompt testing, or model comparison. Does **not** affect core Sentinel functionality. `1 = On`, `0 = Off`. | 0 | Useful for offline LLM testing and evaluation. |
 | **ANALYSIS_WINDOW** | Time interval used for each bulk processing report. | 3600 (seconds, i.e. 1h) | Used only when Bulk Processing is enabled. |
-| **BULK_PROCESSING** | Enables periodic bulk RSS trend reports. `1 = On`, `0 = Off`. | 0 | Sends accumulated RSS feeds to the LLM for a single trend analysis report. May increase processing load significantly. |
+| **BULK_ANALYSIS** | Enables periodic bulk RSS trend reports. `1 = On`, `0 = Off`. Very experimental relative to the routine reporting. The special prompt is hard-coded, for now.| 0 | Sends accumulated RSS feeds to the LLM for a single trend analysis report. May increase processing load significantly. |
 
+6. **Load your model (e.g., in LMStudio, Ollama) or acquire your API Key (e.g., for OpenAI)** of choice and be sure to set its context window to comfortably exceed the value you enter in the TOKENS_INPUT fields of ShunyaNet Sentinel. The program is currently designed to be compatible with LMStudio, Ollama, and OpenAI (via API Key).
+Then, go to "Additional Settings" in ShunyaNet Sentinel and fill in the following fields as appropriate for your LLM solution:
 
-6. **(In LM-Studio) load your model** of choice and be sure to set its context window to comfortably exceed the value you enter in the TOKENs field of ShunyaNet Sentinel (and bulk processing tokens, if that features is active).
-      1. Although this is designed/tested with LMStudio in mind, it should work with any OpenAI-compatible /v1/chat/completions endpoint.
+LMSTUDIO:
+LLM_PROVIDER = lmstudio
+LLM_BASE_URL = <your LMStudio server URL, e.g.: http://localhost:1234/v1>
+LLM_MODEL = <OPTIONAL. I recommend leaving this blank and loading your model in LMStudio directly. If you must, then the format is like: lmstudio-community/mistral-7b-instruct>
+LLM_API_KEY = <Leave this blank, unless you use an authentical key>
+
+OLLAMA: 
+LLM_PROVIDER = ollama
+LLM_BASE_URL = <Your LMStudio server URL, e.g.: http://localhost:11434/v1>
+LLM_MODEL = llama3
+LLM_API_KEY = = <leave this empty/blank>
+
+OPENAI (via API KEY)
+LLM_PROVIDER = openai
+LLM_BASE_URL = (doesn't matter: this field is ignored)
+LLM_MODEL = gpt-4o-mini
+LLM_API_KEY = sk-xxxx
+
 
 7. **Done! - Now click the cat!** (...or hit "Fetch / Send", or just wait the number of seconds you set in FETCH_INTERVAL)
 
