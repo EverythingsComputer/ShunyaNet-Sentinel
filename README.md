@@ -170,24 +170,23 @@ Windows:
 6. **Load your model (e.g., in LMStudio, Ollama) or acquire your API Key (e.g., for OpenAI)** of choice and be sure to set its context window to comfortably exceed the value you enter in the TOKENS_INPUT fields of ShunyaNet Sentinel. The program is currently designed to be compatible with LMStudio, Ollama, and OpenAI (via API Key).
 Then, go to "Additional Settings" in ShunyaNet Sentinel and fill in the following fields as appropriate for your LLM solution:
 
-LMSTUDIO:
-LLM_PROVIDER = lmstudio
-LLM_BASE_URL = <your LMStudio server URL, e.g.: http://localhost:1234/v1>
-LLM_MODEL = <OPTIONAL. I recommend leaving this blank and loading your model in LMStudio directly. If you must, then the format is like: lmstudio-community/mistral-7b-instruct>
-LLM_API_KEY = <Leave this blank, unless you use an authentical key>
+##### LMSTUDIO
+- `LLM_PROVIDER = lmstudio`
+- `LLM_BASE_URL = <your LMStudio server URL, e.g.: http://localhost:1234/v1>`
+- `LLM_MODEL = <OPTIONAL. I recommend leaving this blank and loading your model in LMStudio directly. If you must, then the format is like: lmstudio-community/mistral-7b-instruct>`
+- `LLM_API_KEY = <Leave this blank, unless you use an authentical key>`
 
-OLLAMA: 
-LLM_PROVIDER = ollama
-LLM_BASE_URL = <Your LMStudio server URL, e.g.: http://localhost:11434/v1>
-LLM_MODEL = llama3
-LLM_API_KEY = = <leave this empty/blank>
+##### OLLAMA
+- `LLM_PROVIDER = ollama`
+- `LLM_BASE_URL = <Your LMStudio server URL, e.g.: http://localhost:11434/v1>`
+- `LLM_MODEL = llama3`
+- `LLM_API_KEY = = <leave this empty/blank>`
 
-OPENAI (via API KEY)
-LLM_PROVIDER = openai
-LLM_BASE_URL = (doesn't matter: this field is ignored)
-LLM_MODEL = gpt-4o-mini
-LLM_API_KEY = sk-xxxx
-
+##### OPENAI (via API KEY)
+- `LLM_PROVIDER = openai`
+- `LLM_BASE_URL = (doesn't matter: this field is ignored)`
+- `LLM_MODEL = gpt-4o-mini`
+- `LLM_API_KEY = sk-xxxx`
 
 7. **Done! - Now click the cat!** (...or hit "Fetch / Send", or just wait the number of seconds you set in FETCH_INTERVAL)
 
