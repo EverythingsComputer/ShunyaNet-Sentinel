@@ -15,7 +15,7 @@ The ShunyaNet Sentinel is compatible with the latest versions of Linux, MacOS, a
 The quality of reporting and analysis is influenced by the prompt, context size, RSS feeds and LLM chosen. It's recommended you turn off thinking features. Models that seem to have performed well and generally follow instructions, include:
 - GPT OSS 20b (thinking set to LOW in LMStudio)
 - GPT OSS 120b (prob. overkill)
-- Hermes 4 70b
+- Hermes 4 70b (my go-to)
 - Gemma 3 27b it abliterated (mlabonne's version)
 - Qwen3 32b and/or VL 30b (i forget which...)
 
