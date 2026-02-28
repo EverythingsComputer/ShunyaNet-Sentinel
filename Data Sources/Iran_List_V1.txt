@@ -40,3 +40,4 @@ https://www.crisisgroup.org/rss/85
 https://feeds.iranherald.com/rss/1b76a2b4cf7810bd
 https://en.mehrnews.com/rss/tp/561
 https://en.mehrnews.com/rss/tp/575
+https://rss-bridge.org/bridge01/?action=display&username=Middle_East_Spectator&bridge=TelegramBridge&format=Plaintext
