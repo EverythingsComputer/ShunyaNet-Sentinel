@@ -120,15 +120,15 @@ Windows:
 1.  Click "Load Prompt File" and load `default_prompt.txt`
 2.  Click "Load Data Source File" and Load `Default_test` RSS list
 3.  Open "Additional Settings" and enter:
-        *  LLM_PROVIDER = lmstudio
-        *  LLM_BASE_URL = <YOUR LMSTUDIO SERVER IP, e.g.: http://x.x.x.x:port/v1>
-        *  LLM_MODEL = <I recommend you leave this blank. Just follow Step 4>
-        *  API_KEY = <leave blank, unless you set one for your server>
-4. Load model in LM Studio. Turn on "Serve on Local Network" in Server Settings. Tips: 
-        * In the "Load Model"/model selection window, turn on "Manually choose model load parameters"
-        * In your model's load parameters window, Set Max Concurrent Predictions to 1 (for now)
-        * In the inference tab, turn off or minimize thinking, if that setting is available.
-        * A model of moderate size that works well: gpt-oss-20b. Thinking set to "low"
+    - LM_PROVIDER = lmstudio
+    - LLM_BASE_URL = <YOUR LMSTUDIO SERVER IP, e.g.: http://x.x.x.x:port/v1>
+    - LLM_MODEL = <I recommend you leave this blank. Just follow Step 4>
+    - API_KEY = <leave blank, unless you set one for your server>
+5. Load model in LM Studio. Turn on "Serve on Local Network" in Server Settings. Tips: 
+    - In the "Load Model"/model selection window, turn on "Manually choose model load parameters"
+    - In your model's load parameters window, Set Max Concurrent Predictions to 1 (for now)
+    - In the inference tab, turn off or minimize thinking, if that setting is available.
+    - A model of moderate size that works well: gpt-oss-20b. Thinking set to "low"
 11. Click the cat! (...or just hit Fetch / Send)
 
 ------------------------------------------------------------------------
