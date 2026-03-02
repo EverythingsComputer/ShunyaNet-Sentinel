@@ -1,7 +1,7 @@
 <img width="1642" height="946" alt="ShunyaNetSentinelAppGraphicV1" src="https://github.com/user-attachments/assets/f1348720-4d36-4bfa-b8d6-ea92bdfd0a9f" />
 
 
-# ShunyaNet Sentinel (UPDATED: 02/23/2026)
+# ShunyaNet Sentinel (UPDATED: 03/02/2026)
 
 ShunyaNet Sentinel is a lightweight, cyberpunk-themed program that ingests RSS feeds (e.g., breaking news, social media), sends them to an LLM for analysis, and delivers alerts and summary reports directly to the GUI and Slack at regular intervals.
 
@@ -133,17 +133,18 @@ Windows:
 
 ------------------------------------------------------------------------
 
-# Full Instructions & Config (UPDATED 02/23)
+# Full Instructions & Config (UPDATED 03/02/2026)
 
 1. **Enter topics of interest**, or load one of the default lists provided. Up to 10 topics may be added to each list.
 
 3. **Click “Load Prompt File” to load a prompt file.** A default prompt is provided (`default_prompt.txt`).
-   1. You’re encouraged to tweak and revise this prompt - it may substantially improve the quality of reporting. There is A LOT of room for customization here.
-   2. There is a 'default_prompt-always-reply.txt' included. This prompt requires the LLM choose one RSS feed item to report back on, even if no topics are triggered. You can use this to debug/test the LLM's analysis.
+   1. You’re encouraged to tweak and revise this prompt - it may substantially improve the quality of reporting and the ability of the LLM to identify a signal amid noise. There is A LOT of room for customization here.
+   2. There is a 'default_prompt-always-reply.txt' included in the experimental folder. It's outdated, but you can use this to debug/test the LLM's analysis and make sure it is reporting something back in the correct format.
+   3. **UPDATED 03/02/2026** There is a 'default_Summary-Report-Only_prompt.txt' prompt also provided. This version doesnt seek to pick a signal out of noise, but rather to summarize a greater volume of relevant feeds when the information space is rich with on-topic data. Thus, it is more useful after the "event" you are looking for has occured. It is also best used less frequently (e.g., every half hour for a fast-moving and widly-reported event, or every few hours for something with less reported data) and with a large token allowance for the prompt and reply. 
 
 4. **Click “Load Data Source File” to load an RSS list.** Two default lists are provided. A short “Default_test” list and a longer “Default_long” list, which focuses on world-wide news and breaking news.
-   1. Tailoring your own lists to your region or topics of interest will significantly affect the output of information. An example region-focused list that I used for a recent trip is provided ('India_regional_example-v1.txt').
-   2. Reddit and blue-sky can be easily converted into RSS feeds. Programs, such as RSSBridge, can also generate RSS feeds from websites that don’t have one.
+   1. Tailoring your own lists to your region or topics of interest will significantly affect the output of information. An example region-focused list that I used for a recent trip is provided ('India_regional_example-v1.txt'). An example Iran-conflict one is also included.
+   2. Reddit and blue-sky can be easily converted into RSS feeds. Programs, such as RSSBridge, can also generate RSS feeds from websites and social media (e.g., telegram) that don’t have one.
    2. The “Default_test” list is a short list of a variety of RSS feeds. The purpose is to keep the first RSS pull quick and short, so that you can diagnose whether all the pieces are working the way they should.
 
 5. **In "Additional Settings", set the following fields.** These will save and persist if you end and restart the program. The default settings will work with most configurations - but you must still enter field #1 yourself:
@@ -197,14 +198,14 @@ Then, go to "Additional Settings" in ShunyaNet Sentinel and fill in the followin
 # Tips, Tricks, and Known Issues
 
 Issues/Warnings: 
--   Sentinel spontaneously quits on Windows 11 after a few hours. No idea why. No errors thrown. Doesn’t have this problem on Mac or Linux - and maybe your system will be different! If you encounter this issue and must use Windows, then I recommend you set up a virtual box with Linux/ubuntu (or suggest a better solution, if you have one!). Note, this program will run fine on a raspberry pi!
+-   Sentinel spontaneously quits on Windows 11 after a few hours. No idea why. No errors thrown. Doesn’t have this problem on Mac or Linux - and maybe your system will be different! If you encounter this issue and must use Windows, then I recommend you set up a virtual box with Linux/ubuntu (or suggest a better solution, if you have one!). **Note, this program will run fine on a raspberry pi!**
 -   Poor configuration choices can overload your LLM or hardware. Make sure your LLM can reliably process and reply faster than your RSS pull interval.
 -   LMStudio recently implemented the ability ("parallel") for an LLM to accept and process more than one prompt at once. Turn this off until you have tested it with this app, or else you can get stuck with time-out errors and a backlog of ever-continuous prompt processing.  
 -   An error message is sometimes thrown when the app is closed on MacOS, maybe also Linux. It doesn’t seem to affect how the program operates or its stability, though. I fixed this once, but it came back. I will fix it again …at some point.
--   I had to remove a few urls from the default list because they were slow (e.g., FEMA's...) or seemingly broken now (e.g., NRC's...).
+-   A slow or 404 URL may slow the feed pull, so monitor your logs once in a while to cull those. The default rss lists include a few of those, but it's managable.
 
 Suggestions:
--   The first fetch / send is sort-of a stress test: it pulls the maximum feed volume for your settings and thus is likely to contain stale information. However, this is a good way to test whether everything is working, to understand your longest prompt processing time, and to get a sample of how your prompt, rss list, and topic list will perform.
+-   The first fetch / send is a stress test: it pulls the maximum feed volume for your settings and thus is likely to contain stale information. However, this is a good way to test whether everything is working, to understand your longest prompt processing time, and to get a sample of how your prompt, rss list, and topic list will perform.
 -   Some "thinking" models produce malformed replies or get stuck in loops. I recommend turning thinking off first. Thinking set to "low" works fine for GPT OSS.
 -   There are all sorts of tricks to broadcast feeds that don’t have RSS by default (e.g., look into RSSBridge). Also, some social sites can be converted into RSS feeds automatically (e.g., adding .rss to a reddit URL, or /RSS to a bluesky profile URL.)
 -   Some sites, reddit specifically, will rate-limit your RSS pulls. To minimize this issue, I strongly recommend you *randomize the order of your RSS url list* so that you do not hit the same site too fast.
@@ -239,3 +240,4 @@ This project uses the following third-party libraries. Please review their licen
 # Name Origin
 
 My cat.
+
