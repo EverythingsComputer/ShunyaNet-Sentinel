@@ -15,7 +15,6 @@ https://www.fema.gov/news/news_region-ii.rss
 https://www.faasafety.gov/RSS/NoticesRSS.aspx
 https://www.faasafety.gov/RSS/NewsRSS.aspx
 https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml
-https://natowatch.org/news.xml
 https://gdacs.org/xml/rss.xml
 https://feedx.net/rss/ap.xml
 https://feeds.nbcnews.com/nbcnews/public/news

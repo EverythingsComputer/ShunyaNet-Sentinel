@@ -1,0 +1,36 @@
+# Irkutsk plague incident — Shelekhov Anti-Plague Institute watch list
+# Built 2026-10-07. Every URL live-tested (HTTP 200 + valid feed) on that date.
+# ProMED-mail killed its public RSS; WHO main-site RSS is dead too —
+# Google News saved searches below are the working substitutes.
+
+# ---- Event-specific saved searches (EN) ----
+https://news.google.com/rss/search?q=%22plague%22%20(Russia%20OR%20Siberia%20OR%20Irkutsk%20OR%20Shelekhov)&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22pneumonic%20plague%22&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=Shipilova%20plague&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=Irkutsk%20anti-plague%20institute&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=Russia%20second%20case%20plague%20lab%20worker&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=Yersinia%20pestis%20outbreak&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22Yersinia%20pestis%22&hl=en-US&gl=US&ceid=US:en
+# ---- Escalation triggers: spread, emergency measures, WHO posture ----
+https://news.google.com/rss/search?q=plague%20(Mongolia%20OR%20China%20OR%20Kazakhstan%20OR%20Kyrgyzstan)&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=Irkutsk%20airport%20OR%20quarantine%20OR%20%22state%20of%20emergency%22%20plague&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=WHO%20plague%20emergency%20committee&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=site%3Awho.int%20plague&hl=en-US&gl=US&ceid=US:en
+# ---- Russian-language saved searches (local + official coverage) ----
+https://news.google.com/rss/search?q=%D1%87%D1%83%D0%BC%D0%B0%20%D0%98%D1%80%D0%BA%D1%83%D1%82%D1%81%D0%BA&hl=ru&gl=RU&ceid=RU:ru
+https://news.google.com/rss/search?q=Rospotrebnadzor%20plague&hl=ru&gl=RU&ceid=RU:ru
+https://news.google.com/rss/search?q=%D1%87%D1%83%D0%BC%D0%B0%20%D0%BF%D0%BD%D0%B5%D0%B2%D0%BC%D0%BE%D0%BD%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B0%D1%8F&hl=ru&gl=RU&ceid=RU:ru
+https://news.google.com/rss/search?q=%D0%BF%D0%BD%D0%B5%D0%B2%D0%BC%D0%BE%D0%BD%D0%B8%D1%8F%20%D0%98%D1%80%D0%BA%D1%83%D1%82%D1%81%D0%BA%20%D0%BB%D0%B0%D0%B1%D0%BE%D1%80%D0%B0%D1%82%D0%BE%D1%80%D0%B8%D1%8F&hl=ru&gl=RU&ceid=RU:ru
+# ---- Russian state/national wires (official narrative + opaqueness signal) ----
+https://tass.com/rss/v2.xml
+https://ria.ru/export/rss2/archive/index.xml
+https://lenta.ru/rss/news
+# ---- Independent Russian media (pressure/censorship signal) ----
+https://www.themoscowtimes.com/rss/news/
+https://newstrend.news/rss/
+# ---- Global health / world context ----
+https://outbreaknewstoday.com/feed/
+https://feeds.bbci.co.uk/news/world/rss.xml
+https://bsky.app/profile/who.int/rss
+# ---- Community chatter (early OSINT; noisy) ----
+https://www.reddit.com/r/epidemiology/new/.rss

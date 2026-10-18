@@ -50,14 +50,12 @@ https://www.newswise.com/legacy/feed/channels.php?channel=6402
 https://feeds.bbci.co.uk/news/world/europe/rss.xml
 https://www.faasafety.gov/RSS/NewsRSS.aspx
 https://bsky.app/profile/youranoncentral.bsky.social/rss
-https://natowatch.org/news.xml
 https://feedx.net/rss/ap.xml
 https://bsky.app/profile/japantimes.co.jp/rss
 https://feeds.bbci.co.uk/news/world/africa/rss.xml
 https://bsky.app/profile/theintercept.com/rss
 https://bsky.app/profile/nycsouthpaw.bsky.social/rss
 https://www.reddit.com/r/UkraineWarVideoReport/new/.rss
-https://bsky.app/profile/intelpointalert.bsky.social/rss
 https://www.reddit.com/r/NorthKoreaNews/new/.rss
 https://gdacs.org/xml/rss.xml
 https://www.reddit.com/r/vzla/new/.rss

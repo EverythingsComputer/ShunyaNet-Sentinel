@@ -1,5 +1,6 @@
-# Virtual environment
+# Virtual environments
 venv/
+venv-*/
 
 # Python cache
 __pycache__/
@@ -11,13 +12,24 @@ __pycache__/
 # Logs
 *.log
 
-# Environment variables
+# Environment variables / secrets
 .env
 
-# Runtime state files
+# Runtime state (created fresh by the app on first run)
+app_state*.json
+topic_profiles.json
 rolling_rss.txt
+Memory_Long_Term.txt
+Memory_Long_Term.txt.*
+Memory_Short_Term.txt
+Report_Output/
+.sentinel_first_run
 
 # Build outputs (if using PyInstaller)
 build/
 dist/
 *.spec
+
+# Personal scratch / superseded files kept locally, never published
+_local-scratch/
+Previous-Versions-local/

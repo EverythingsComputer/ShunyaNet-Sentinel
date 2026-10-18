@@ -1,93 +1,86 @@
 <img width="1642" height="946" alt="ShunyaNetSentinelAppGraphicV1" src="https://github.com/user-attachments/assets/f1348720-4d36-4bfa-b8d6-ea92bdfd0a9f" />
 
+# ShunyaNet Sentinel (v3.0 — UPDATED: 10/18/2026)
 
-# ShunyaNet Sentinel (UPDATED: 03/02/2026)
+ShunyaNet Sentinel is a lightweight, cyberpunk-themed program that ingests RSS feeds (breaking news, social media, government alerts), sends them to an LLM for analysis, and delivers alerts and summary reports to the GUI and your notification channels at regular intervals.
 
-ShunyaNet Sentinel is a lightweight, cyberpunk-themed program that ingests RSS feeds (e.g., breaking news, social media), sends them to an LLM for analysis, and delivers alerts and summary reports directly to the GUI and Slack at regular intervals.
+The project uses an LLM hosted locally on the same machine or network (e.g., with Tailscale) via **LM Studio**, **Ollama**, or **llama.cpp** — or the **OpenAI API**. Alerting works over **Slack, Discord, Telegram, ntfy, any generic webhook, and desktop popups** (use as many at once as you want).
 
-The project is built to utilize an LLM hosted locally on the same machine or network (e.g., with Tailscale) using LMStudio or **Ollama (02/23 Update)**. It will also work with an **OpenAI API key (02/23 Update)**. 
+Compatible with current versions of Linux, macOS, and Windows.
 
-For alerting, the program utilizes Slack Webhooks, enabling push
-notifications to be sent to a mobile device.
-
-The ShunyaNet Sentinel is compatible with the latest versions of Linux, MacOS, and Windows*
-
-The quality of reporting and analysis is influenced by the prompt, context size, RSS feeds and LLM chosen. It's recommended you turn off thinking features. Models that seem to have performed well and generally follow instructions, include:
-- GPT OSS 20b (thinking set to LOW in LMStudio)
-- GPT OSS 120b (prob. overkill)
-- Hermes 4 70b (my go-to)
+The quality of reporting depends on your prompt, context size, RSS feeds, and LLM. Turn off "thinking" features if your model has them. Models that have performed well:
+- GPT OSS 20b (thinking LOW in LM Studio)
+- Hermes 4 70b
 - Gemma 3 27b it abliterated (mlabonne's version)
-- Qwen3 32b and/or VL 30b (i forget which...)
+- Qwen3 32b
 
-*Strongly suggest macOS or Linux. See Known Issues below.
-
-See Tips, Tricks, and Known Issues at the end for important info!
+*Strongly suggest macOS or Linux. See Known Issues at the end.*
 
 ------------------------------------------------------------------------
 
 # High-Level Workflow
 
-1.  User enters topics of interest
-2.  User provides a list of RSS feeds
-3.  Sentinel pulls RSS feeds at user-configured intervals of time
-4.  RSS content is sent to the user-provided LLM server
-5.  The LLM reviews feeds and reports back to Sentinel on relevant topics of interest
-6.  If Slack webhook is configured, alerts are forwarded and notifications can be accessed on ios/android (often with live links to referenced RSS content)
-7.  Optional bulk analysis identifies trends over time
+1. Enter topics of interest (the Setup Wizard walks you through this on first launch)
+2. Provide a list of RSS feeds (bundled lists included, one URL per line)
+3. Sentinel pulls feeds at your configured interval
+4. Feed content goes to your LLM server
+5. The LLM screens for alerts and, periodically, writes trend reports
+6. Alerts/summaries land in the GUI **and** every notification channel you configured (phone push via Slack/Discord/Telegram/ntfy)
+7. Every report is also saved as a plain text file — including an `agent_handoff.json` index so scripts and AI agents can consume Sentinel's output without touching the GUI
 
 ------------------------------------------------------------------------
 
 # Core Capabilities
 
 ## RSS Feed Monitoring
+- Periodic polling, fetched in parallel but serialized per-host (polite to rate limiters like Reddit)
+- Deduplication by entry GUID; per-source failure logging
+- Handles slow or malformed feeds without blocking the UI
 
--   Periodic polling of RSS feeds
--   Deduplication and timestamp tracking
--   Handles slow or malformed feeds (...more work to be done here)
+## LLM-Based Analysis
+- Works with any OpenAI-compatible `/v1/chat/completions` endpoint: LM Studio, Ollama, llama.cpp, OpenAI
+- One prompt file drives both modes via `#> ALERT` / `#> SUMMARY` / `#> MEMORY` sections
+- Automatic chunking when pulls exceed your token budget
 
-## LLM-Based Analysis (Optional)
-
--   Sends RSS feed items to local/api LLM endpoint
--   Prompt-driven classification, summarization, filtering
--   Works with any OpenAI-compatible `/v1/chat/completions` endpoint, designed for LMStudio
-
-## Alerting / Signal Generation
-
--   Slack webhook support (for webhook setup info, go here: https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/) 
--   Structured output suitable for automation
--   Designed for integration into larger workflows
+## Alerting
+- **Slack** incoming webhook
+- **Discord** channel webhook
+- **Telegram** bot (token + chat ID)
+- **ntfy** topic URL (free, no-account phone push; self-hostable)
+- **Generic webhook** (POSTs JSON — Home Assistant, scripts, anything)
+- **Desktop popups** via the system tray
+- Per-channel **Test button** in Settings → Notifications using the values you just typed, before saving
+- Toggle whether periodic summaries also go out, or only instant alerts
 
 ## Local & Self-Hosted
+Other than polling RSS feeds and sending your notifications (both optional), all information stays on hardware you control.
 
--   Other than polling RSS feeds, or sending replies to slack (optional), all information remains on hardware you control
+## Agent / Script Integration
+Sentinel writes stable, machine-readable artifacts beside every report: `Report_Output/agent_handoff.json` points at the newest alert/summary file plus the memory files. Any local agent can poll that one JSON file to follow what Sentinel is seeing. See [docs/AGENT-INTEGRATION.md](docs/AGENT-INTEGRATION.md) for the full contract, and Help → Agent / Script Integration inside the app.
 
 ------------------------------------------------------------------------
 
 # Requirements
 
--   Python 3.10+
--   Dependencies listed in `requirements.txt`:
-    -   PySide6==6.10.0
-    -   feedparser==6.0.12
-    -   requests==2.31.0
-    -   python-dateutil==2.9.0.post0
+- Python 3.10+
+- Dependencies (see `requirements.txt`): PySide6, feedparser, requests
 
-LLM hosted via: 
-- LM Studio-hosted (recommended)
-- Ollama 
-- OpenAI api key
-- (a few more to come soon)
+LLM hosted via:
+- LM Studio (recommended)
+- Ollama
+- llama.cpp server
+- OpenAI API key
 
 ------------------------------------------------------------------------
 
 # Installation
 
-## 1. Clone Repository (...Or Download the Zip) & Navigate to the Folder
+## 1. Clone (or download the ZIP) and enter the folder
 
     git clone https://github.com/EverythingsComputer/ShunyaNet-Sentinel.git
     cd ShunyaNet-Sentinel
 
-## 2. (Strongly Recommended) Create Virtual Environment
+## 2. (Strongly recommended) Create a virtual environment
 
 macOS / Linux:
 
@@ -99,145 +92,119 @@ Windows (PowerShell):
     python -m venv venv
     venv\Scripts\Activate.ps1
 
-## 3. Install Requirements
+## 3. Install requirements
 
     pip install -r requirements.txt
 
 ## 4. Run
 
-macOS / Linux:
-
-    python3 ShunyaNet_Sentinel.py
-
-Windows:
-
-    python ShunyaNet_Sentinel.py
+macOS / Linux: `python3 ShunyaNet_Sentinel.py`
+Windows: `python ShunyaNet_Sentinel.py`
 
 ------------------------------------------------------------------------
 
-# Quick Start (with LMStudio) (UPDATED 02/23)
+# Quick Start
 
-1.  Click "Load Prompt File" and load `default_prompt.txt`
-2.  Click "Load Data Source File" and Load `Default_test` RSS list
-3.  Open "Additional Settings" and enter:
-    - LM_PROVIDER = lmstudio
-    - LLM_BASE_URL = <YOUR LMSTUDIO SERVER IP, e.g.: http://x.x.x.x:port/v1>
-    - LLM_MODEL = <I recommend you leave this blank. Just follow Step 4>
-    - API_KEY = <leave blank, unless you set one for your server>
-5. Load model in LM Studio. Turn on "Serve on Local Network" in Server Settings. Tips: 
-    - In the "Load Model"/model selection window, turn on "Manually choose model load parameters"
-    - In your model's load parameters window, Set Max Concurrent Predictions to 1 (for now)
-    - In the inference tab, turn off or minimize thinking, if that setting is available.
-    - A model of moderate size that works well: gpt-oss-20b. Thinking set to "low"
-11. Click the cat! (...or just hit Fetch / Send)
+On first launch, Sentinel walks you through setup with a guided **Setup Wizard** (reopen anytime with `Ctrl+W` or Help → Setup Wizard):
+
+1. **Topics** – your overall topic and signals (one per line). Autosaves as you type.
+2. **Model connection** – pick LM Studio / Ollama / llama.cpp / OpenAI; the wizard shows exactly what to enter, with a **Test Connection** button so you know it works before relying on it.
+3. **Feeds** – one click loads the bundled Quick-Start (short) or World News (long) list.
+4. **Confirm** – review and launch your first fetch (the button actually fetches).
+
+Manual setup (skipping the wizard):
+
+1. Enter topics in the Targeting panel.
+2. File → Bundled Source Lists → Quick-Start List (or load your own `.txt`, one RSS URL per line — your loaded list is remembered across restarts now).
+3. Run → Settings (`Ctrl+,`) → Connection tab: choose provider, set the Server URL (LM Studio example: `http://localhost:1234/v1`), press **Test Connection**, Save & Apply.
+4. Load a model in LM Studio and turn on "Serve on Local Network" in Server Settings. Tips:
+    - In the Load Model window, turn on "Manually choose model load parameters"
+    - Set Max Concurrent Predictions to 1 (for now)
+    - Turn off or minimize thinking, if available
+    - A solid moderate choice: gpt-oss-20b, thinking "low"
+5. Click the cat! (...or hit Fetch / Send with `Ctrl+Enter`, or wait for the auto-fetch countdown in the status bar)
+
+To push alerts to your phone: Settings → Notifications → fill one channel (Slack/Discord/Telegram/ntfy), press **Send Test Notification**, Save & Apply. Setup hints for each service are in that tab's tooltips.
+
+Every setting has a hover tooltip; Help (`F2`) lists keyboard shortcuts. Matrix-rain screensaver: `F1`.
 
 ------------------------------------------------------------------------
 
-# Full Instructions & Config (UPDATED 03/02/2026)
+# Full Instructions & Config
 
-1. **Enter topics of interest**, or load one of the default lists provided. Up to 10 topics may be added to each list.
+1. **Topics** — enter topics in the Targeting panel (autosaves). Save named sets as Profiles to switch watch-lists quickly. Your loaded feed list is part of app state and persists across restarts.
 
-3. **Click “Load Prompt File” to load a prompt file.** A default prompt is provided (`default_prompt.txt`).
-   1. You’re encouraged to tweak and revise this prompt - it may substantially improve the quality of reporting and the ability of the LLM to identify a signal amid noise. There is A LOT of room for customization here.
-   2. There is a 'default_prompt-always-reply.txt' included in the experimental folder. It's outdated, but you can use this to debug/test the LLM's analysis and make sure it is reporting something back in the correct format.
-   3. **UPDATED 03/02/2026** There is a 'default_Summary-Report-Only_prompt.txt' prompt also provided. This version doesnt seek to pick a signal out of noise, but rather to summarize a greater volume of relevant feeds when the information space is rich with on-topic data. Thus, it is more useful after the "event" you are looking for has occured. It is also best used less frequently (e.g., every half hour for a fast-moving and widly-reported event, or every few hours for something with less reported data) and with a large token allowance for the prompt and reply. 
+2. **Prompts: one file does it all (`sentinel_prompt.txt`).** It loads automatically and contains marked sections:
+   - `#> ALERT` — instructions sent with every fetch (instant alert screening)
+   - `#> SUMMARY` — instructions for periodic trend reports
+   - `#> MEMORY` — long-term-memory policy; Sentinel appends it to the summary prompt **only while the memory profiler is enabled**
 
-4. **Click “Load Data Source File” to load an RSS list.** Two default lists are provided. A short “Default_test” list and a longer “Default_long” list, which focuses on world-wide news and breaking news.
-   1. Tailoring your own lists to your region or topics of interest will significantly affect the output of information. An example region-focused list that I used for a recent trip is provided ('India_regional_example-v1.txt'). An example Iran-conflict one is also included.
-   2. Reddit and blue-sky can be easily converted into RSS feeds. Programs, such as RSSBridge, can also generate RSS feeds from websites and social media (e.g., telegram) that don’t have one.
-   2. The “Default_test” list is a short list of a variety of RSS feeds. The purpose is to keep the first RSS pull quick and short, so that you can diagnose whether all the pieces are working the way they should.
+   A prompt file with no `#>` markers is used whole for both modes. File → Load Prompt File swaps files (it reports which sections it detects). Tokens `{TOPICS}`, `{CHUNK}` and `{LONG_TERM_MEMORY}` are filled in at send time. Tweaking the wording can substantially improve signal quality.
 
-5. **In "Additional Settings", set the following fields.** These will save and persist if you end and restart the program. The default settings will work with most configurations - but you must still enter field #1 yourself:
+3. **Data sources** — "Load Data Sources…" takes a `.txt` with one RSS URL per line (`#` comments allowed) or a JSON list. Bundled lists:
+   - `Default_test-v1.txt` — short, varied; keeps the first pull quick so you can diagnose your setup
+   - `Default_long-v1.txt` — longer world/breaking-news focus
+   - `India_regional_example-v1.txt`, `Iran_List_V1.txt` — region/topic examples
 
-| Setting | Description | Default | Example / Notes |
-|----------|---------------------------|----------|------------------|
-| **LLM_PROVIDER** | SEE NEXT STEP | — | — |
-| **LLM_BASE_URL** | SEE NEXT STEP | — | — |
-| **LLM_MODEL** | SEE NEXT STEP | — | — |
-| **LLM_API_KEY** | SEE NEXT STEP | — | — |
-| **SLACK_WEBHOOK_URL** | Optional Slack webhook URL for sending alerts to Slack. | Optional | `https://hooks.slack.com/services/...` |
-| **MAX_INPUT_TOKENS** | Maximum tokens sent to the LLM per RSS pull. Rule of thumb: **1 token ≈ 4 characters**. If exceeding model context size, enable chunked mode. | 4000 | Increase carefully depending on your LLM's context window. |
-| **MAX_OUTPUT_TOKENS** | Maximum tokens the LLM will send back in its reply. (note: this is the max/cap, not the target!) | 4000 | Recommend you do not change. 4000 is probaly too much breathing room, to be honest |
-| **MAX_INPUT_TOKENS_BULK** | Maximum tokens length of RSS feeds sent to the LLM for bulk processing reports. When bulk processing is enabled, RSS feeds are saved and sent together with a special trend-analysis prompt (hard-coded prompt, for now). Chunks are never used for this, so dont exceed your context limit | 4000 | Likely needs to be increased for meaningful bulk reports. May stress VRAM and context limits. Recommended you disable bulk mode initially. |
-| **MAX_OUTPUT_TOKENS_BULK** | Maximum tokens length of the bulk processing report itself. | 4000 | May need to be increased for meaningful bulk reports. May stress VRAM and context limits. Recommended to disable bulk mode initially. |
-| **FETCH_INTERVAL** | Time in seconds between RSS pulls and LLM analysis. | 600 (seconds, i.e. 10 min) | Do **not** set lower than total processing time or backlog may occur. |
-| **ITEMS_PER_FEED** | Maximum number of RSS entries pulled per feed per cycle. Previously pulled items are ignored. | 50 | Higher values create a larger first pull. Most RSS feeds do not produce much more than 20 new items every 10 minutes, some much less. |
-| **USE_CHUNKED_MODE** | Enables automatic splitting of RSS content if it exceeds token allowance. `1 = On`, `0 = Off`. | 1 | Prevents context overflow but may duplicate event reporting across chunks. |
-| **CHUNK_SIZE** | Size of each chunk in **characters** (not tokens). | 8000 | Approximate conversion: **4 characters ≈ 1 token**. I REPEAT: THIS IS IN **CHARACTERS**. Should it be in tokens? Probably! But it's not.|
-| **WRITE_TO_FILE** | Optional. Writes all pulled RSS content to a rolling file for external benchmarking, prompt testing, or model comparison. Does **not** affect core Sentinel functionality. `1 = On`, `0 = Off`. | 0 | Useful for offline LLM testing and evaluation. |
-| **ANALYSIS_WINDOW** | Time interval used for each bulk processing report. | 3600 (seconds, i.e. 1h) | Used only when Bulk Processing is enabled. |
-| **BULK_ANALYSIS** | Enables periodic bulk RSS trend reports. `1 = On`, `0 = Off`. Very experimental relative to the routine reporting. The special prompt is hard-coded, for now.| 0 | Sends accumulated RSS feeds to the LLM for a single trend analysis report. May increase processing load significantly. |
+   Reddit URLs work by adding `.rss`; Bluesky profiles work as `https://bsky.app/profile/NAME/RSS`. Tools like RSS-Bridge convert sites without feeds (e.g., Telegram). **Randomize your list order** so rate-limiting sites don't get hit in bursts (Sentinel also serializes requests per host automatically).
 
-6. **Load your model (e.g., in LMStudio, Ollama) or acquire your API Key (e.g., for OpenAI)** of choice and be sure to set its context window to comfortably exceed the value you enter in the TOKENS_INPUT fields of ShunyaNet Sentinel. The program is currently designed to be compatible with LMStudio, Ollama, and OpenAI (via API Key).
-Then, go to "Additional Settings" in ShunyaNet Sentinel and fill in the following fields as appropriate for your LLM solution:
+4. **Settings** (`Ctrl+,`) — five tabs, every field with a tooltip:
 
-##### LMSTUDIO
-- `LLM_PROVIDER = lmstudio`
-- `LLM_BASE_URL = <your LMStudio server URL, e.g.: http://localhost:1234/v1>`
-- `LLM_MODEL = <OPTIONAL. I recommend leaving this blank and loading your model in LMStudio directly. If you must, then the format is like: lmstudio-community/mistral-7b-instruct>`
-- `LLM_API_KEY = <Leave this blank, unless you use an authentical key>`
+| Tab | Key settings |
+|-----|--------------|
+| **Connection** | Provider, Server URL, Model name, API key, Test Connection |
+| **Limits** | Max input/output tokens (1 token ≈ 4 characters), chunk size (in CHARACTERS), items per feed, LLM timeout |
+| **Automation** | Auto-fetch interval; Mode 1: instant Alerts; Mode 2: periodic Summaries with analysis window |
+| **Notifications** | Slack / Discord / Telegram / ntfy / generic webhook; desktop popups; whether summaries are pushed too; Send Test Notification |
+| **Memory & Output** | Report folder, sequential long-term memory profiler and its caps |
 
-##### OLLAMA
-- `LLM_PROVIDER = ollama`
-- `LLM_BASE_URL = <Your LMStudio server URL, e.g.: http://localhost:11434/v1>`
-- `LLM_MODEL = llama3`
-- `LLM_API_KEY = = <leave this empty/blank>`
+Defaults work for most setups. Notable values: `FETCH_INTERVAL` (default 600 s — must exceed your LLM's processing time or a backlog builds), `MAX_INPUT_TOKENS` (keep below your model's context window; enable chunking if you exceed it).
 
-##### OPENAI (via API KEY)
-- `LLM_PROVIDER = openai`
-- `LLM_BASE_URL = (doesn't matter: this field is ignored)`
-- `LLM_MODEL = gpt-4o-mini`
-- `LLM_API_KEY = sk-xxxx`
+##### Provider cheat sheet
+| | lmstudio | ollama | llamacpp | openai |
+|---|---|---|---|---|
+| URL | `http://localhost:1234/v1` | `http://localhost:11434/v1` | its `/v1` endpoint | ignored |
+| Model | blank = loaded model | e.g. `llama3.1` | your `--alias` | e.g. `gpt-4o-mini` |
+| API key | blank | blank | if you set one | `sk-...` |
 
-7. **Done! - Now click the cat!** (...or hit "Fetch / Send", or just wait the number of seconds you set in FETCH_INTERVAL)
+5. **Reports & agent files** — every alert/summary is written to the Report folder (`REPORT_OUTPUT_DIR`, default `Report_Output/`) with timestamped names, and `agent_handoff.json` is refreshed to point at the newest artifacts. File → Open Report Folder, or Help → Agent / Script Integration for paths.
 
-**NOTE:** I recommend you keep it simple for the first run. Use the default settings & make sure it works. Then, tweak context & RSS feeds. Then, adjust the prompt. I’d be curious to see folks’ improved prompts….
+6. **Done — click the cat!** Keep it simple on the first run: defaults + short feed list, confirm end-to-end, then tune context, feeds, and prompt.
 
 ------------------------------------------------------------------------
 
 # Tips, Tricks, and Known Issues
 
-Issues/Warnings: 
--   Sentinel spontaneously quits on Windows 11 after a few hours. No idea why. No errors thrown. Doesn’t have this problem on Mac or Linux - and maybe your system will be different! If you encounter this issue and must use Windows, then I recommend you set up a virtual box with Linux/ubuntu (or suggest a better solution, if you have one!). **Note, this program will run fine on a raspberry pi!**
--   Poor configuration choices can overload your LLM or hardware. Make sure your LLM can reliably process and reply faster than your RSS pull interval.
--   LMStudio recently implemented the ability ("parallel") for an LLM to accept and process more than one prompt at once. Turn this off until you have tested it with this app, or else you can get stuck with time-out errors and a backlog of ever-continuous prompt processing.  
--   An error message is sometimes thrown when the app is closed on MacOS, maybe also Linux. It doesn’t seem to affect how the program operates or its stability, though. I fixed this once, but it came back. I will fix it again …at some point.
--   A slow or 404 URL may slow the feed pull, so monitor your logs once in a while to cull those. The default rss lists include a few of those, but it's managable.
+Issues/Warnings:
+- Poor configuration can overload your LLM or hardware. Make sure your LLM replies faster than your RSS pull interval.
+- LM Studio's "parallel" predictions can cause timeouts/backlogs with this app — keep Max Concurrent Predictions at 1 until you've tested otherwise.
+- A slow or dead URL slows the feed pull; watch the Terminal Log occasionally and cull failures (the log is timestamped now).
+- Earlier versions had spontaneous quits on Windows 11 after hours of running. The threading model was rewritten in v3.0 (daemon worker threads, no blocking joins on close) which removes the known causes; if you still see it on an old build, upgrade or run under Linux.
 
 Suggestions:
--   The first fetch / send is a stress test: it pulls the maximum feed volume for your settings and thus is likely to contain stale information. However, this is a good way to test whether everything is working, to understand your longest prompt processing time, and to get a sample of how your prompt, rss list, and topic list will perform.
--   Some "thinking" models produce malformed replies or get stuck in loops. I recommend turning thinking off first. Thinking set to "low" works fine for GPT OSS.
--   There are all sorts of tricks to broadcast feeds that don’t have RSS by default (e.g., look into RSSBridge). Also, some social sites can be converted into RSS feeds automatically (e.g., adding .rss to a reddit URL, or /RSS to a bluesky profile URL.)
--   Some sites, reddit specifically, will rate-limit your RSS pulls. To minimize this issue, I strongly recommend you *randomize the order of your RSS url list* so that you do not hit the same site too fast.
+- The first fetch is a stress test: maximum feed volume, likely stale items — good for checking plumbing and measuring your slowest LLM pass.
+- Thinking models sometimes produce malformed replies or loop. Turn thinking off (or LOW) first.
+- Some sites rate-limit RSS pulls; Sentinel serializes per-host requests, but randomizing list order helps further.
 
 ------------------------------------------------------------------------
 
 # Status
 
-Alpha
+Beta (v3.0)
 
 ------------------------------------------------------------------------
 
 # License
 
-This project is licensed under the **Apache 2.0**.
+Apache 2.0. Attribution: ShunyaNet / EverythingsComputer. **No warranty**; provided "as is".
 
-Attribution: ShunyaNet / EverythingsComputer
-
-**No Warranty:** The software is provided "as is", without warranty of any kind, express or implied.
-
-### Dependencies
-
-This project uses the following third-party libraries. Please review their licenses when using, distributiong, and/or altering this project:
-
-- **PySide6** — LGPL  
-- **feedparser** — BSD  
-- **requests** — Apache 2.0  
-- **python-dateutil** — BSD
+### Third-party libraries
+- **PySide6** — LGPL
+- **feedparser** — BSD
+- **requests** — Apache 2.0
 
 ------------------------------------------------------------------------
 
 # Name Origin
 
 My cat.
-
