@@ -144,7 +144,7 @@ win.show()
 
 # configure for the mocks
 win.settings.update({
-    "LLM_PROVIDER": "lmstudio",
+    "LLM_PROVIDER": "openai_compat",
     "LLM_BASE_URL": "http://127.0.0.1:8931/v1",
     "SLACK_WEBHOOK_URL": "http://127.0.0.1:8932/slack",
     "DISCORD_WEBHOOK_URL": "http://127.0.0.1:8932/discord",

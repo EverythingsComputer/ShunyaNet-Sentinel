@@ -67,6 +67,7 @@ legacy = {
         "LLM_PROVIDER": "ollama",
         "SUMMARY_ENABLED": "0",
         "BULK_ANALYSIS": "1",
+        "CHUNK_SIZE": 8000,
     },
 }
 with open(os.path.join(DIR, "app_state.json"), "w") as fh:
@@ -77,11 +78,33 @@ win = mod.SentinelWindow()
 win.show()
 app.processEvents()
 assert win.get_setting("SUMMARIES_ENABLED", int) == 1, "legacy OR-migration failed"
+assert win.get_setting("LLM_PROVIDER") == "openai_compat", "legacy provider migration failed"
+# legacy CHUNK_SIZE (chars) must become CHUNK_TOKENS (~ /4), old key gone
+assert win.get_setting("CHUNK_TOKENS", int) == 2000, "chunk chars->tokens migration failed"
+assert "CHUNK_SIZE" not in win.settings, "old CHUNK_SIZE not dropped"
 assert win.overall_topic_edit.toPlainText() == "Legacy test"
 # old WRITE_TO_FILE key must not crash anything and must be dropped from defaults
 assert "WRITE_TO_FILE" not in mod.DEFAULT_SETTINGS
 print("legacy migration OK")
 win.close()
 app.processEvents()
+
+# --- 4. theme persistence: save professional, relaunch, palette restored
+w = mod.SentinelWindow()
+w.show()
+w.apply_theme("professional", persist=True)
+w.close()
+app.processEvents()
+
+mod2 = load_mod()
+w2 = mod2.SentinelWindow()
+w2.show()
+app.processEvents()
+assert w2.settings.get("UI_THEME") == "professional", "theme not persisted"
+assert mod2.PALETTE["accent"] == mod2.THEMES["professional"]["accent"], \
+    "saved theme not restored at startup"
+w2.close()
+app.processEvents()
+print("theme persistence OK")
 
 print("RESTART TESTS ALL PASS")

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Offscreen smoke: boot, settings dialog tabs, wizard flow, close."""
-import os, sys, importlib.util
+import os, sys, time, importlib.util
 
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 APP = os.environ.get("SENTINEL_APP",
@@ -28,9 +28,41 @@ dlg = mod.SettingsDialog(win)
 app.processEvents()
 tabs = dlg._tabs
 print("settings tabs:", [tabs.tabText(i) for i in range(tabs.count())])
+assert " Appearance " in [tabs.tabText(i) for i in range(tabs.count())]
 dlg._refresh_notify_summary()
 print("notify summary:", dlg.test_notify_result.text())
+
+# provider combo must carry every registry entry as data, incl. custom compat
+prov = dlg.fields["LLM_PROVIDER"]
+keys = [prov.itemData(i) for i in range(prov.count())]
+assert "openai_compat" in keys and len(keys) == len(mod.PROVIDERS), keys
 dlg.reject()
+
+# --- theme engine: apply every theme, verify palette+sheet swap, then revert ---
+before = dict(mod.PALETTE)
+for k in mod.THEMES:
+    win.apply_theme(k, persist=False)
+    assert mod.PALETTE["accent"] == mod.THEMES[k]["accent"], k
+    sheet = mod.QApplication.instance().styleSheet().lower()
+    assert mod.THEMES[k]["accent"].lower() in sheet, k
+print("themes apply OK:", list(mod.THEMES))
+win.apply_theme(mod.DEFAULT_THEME, persist=False)
+
+# --- fetch-thread regression: start_fetch_thread must free its slot on finish ---
+win.settings["LLM_PROVIDER"] = "openai_compat"
+win.settings["LLM_BASE_URL"] = "http://127.0.0.1:1/v1"   # instant refuse
+win.feeds = ["http://127.0.0.1:1/x.rss"]                 # unreachable feed
+win.start_fetch_thread()
+deadline = time.time() + 30
+while win._fetch_worker is not None and time.time() < deadline:
+    app.processEvents(); time.sleep(0.05)
+assert win._fetch_worker is None, "fetch worker slot never freed (freeze regression)"
+win.start_fetch_thread()   # second start must be accepted now
+deadline = time.time() + 30
+while win._fetch_worker is not None and time.time() < deadline:
+    app.processEvents(); time.sleep(0.05)
+assert win._fetch_worker is None, "second fetch slot never freed"
+print("FETCH THREAD SLOT FREEING OK")
 
 wiz = mod.SetupWizard(win)
 app.processEvents()

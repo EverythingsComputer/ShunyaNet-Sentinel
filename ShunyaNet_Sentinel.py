@@ -62,7 +62,7 @@ import threading
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 
-APP_VERSION = "3.0.0"
+APP_VERSION = "3.1.0"
 
 import requests
 import feedparser
@@ -71,8 +71,17 @@ from PySide6.QtCore import (
     Qt, QTimer, Signal, QByteArray, QEasingCurve, QPropertyAnimation,
     Property,
 )
+try:                       # QPointF lives in QtCore on all supported PySide6
+    from PySide6.QtCore import QPointF
+except ImportError:        # pragma: no cover - binding variant safety
+    from PySide6.QtGui import QPointF
+try:                       # QPolygonF moved between modules across versions
+    from PySide6.QtGui import QPolygonF
+except ImportError:        # pragma: no cover - binding variant safety
+    from PySide6.QtCore import QPolygonF
 from PySide6.QtGui import (
     QAction, QIcon, QPixmap, QPainter, QFont, QFontDatabase, QColor, QFontMetrics,
+    QPen,
     QKeySequence,
 )
 from PySide6.QtWidgets import (
@@ -144,9 +153,87 @@ MAX_FEED_ENTRIES = 30
 MAX_SEEN_GUIDS = 8000
 FEED_BODY_CHARS = 4000
 
-ACCENT = "#00FF41"
-ACCENT_DIM = "#0a3d18"
 DEFAULT_UI_FONT_PT = 10
+
+# --------------------------------------------------------------------------- #
+# Themes
+#
+# Every color the UI paints comes from the active palette dict. 'text' is the
+# main foreground; 'accent' is the interactive highlight (selection, focused
+# borders, selected tab); 'on_accent' is readable text drawn on accent fills.
+# Cyber themes are monospace; Professional switches to the system UI font.
+# --------------------------------------------------------------------------- #
+
+THEMES = {
+    "cyber_green": {
+        "label": "Cyberpunk Green", "mono": True, "radius": 3,
+        "text": "#00FF41", "accent": "#00FF41", "on_accent": "#000000",
+        "dim": "#0a3d18", "bg": "#000000", "panel": "#000800",
+        "card": "#010501", "btn": "#001a05", "hover": "#032b0c",
+        "title": "#001503", "bar": "#000d02", "sep": "#0c2a12",
+        "hint": "#35a357", "disabled": "#1f5c2e",
+        "body": "#001900", "reply": "#001a03",
+    },
+    "cyber_amber": {
+        "label": "Cyberpunk Amber", "mono": True, "radius": 3,
+        "text": "#FFA000", "accent": "#FFB300", "on_accent": "#1a0e00",
+        "dim": "#5c3a00", "bg": "#000000", "panel": "#0d0700",
+        "card": "#080400", "btn": "#1f1200", "hover": "#33200a",
+        "title": "#190e00", "bar": "#0d0700", "sep": "#3a2500",
+        "hint": "#c98f4b", "disabled": "#6e5127",
+        "body": "#1a0f00", "reply": "#170d00",
+    },
+    "cyber_ice": {
+        "label": "Cyberpunk Blue", "mono": True, "radius": 3,
+        "text": "#4FC3F7", "accent": "#29B6F6", "on_accent": "#001520",
+        "dim": "#0d3b56", "bg": "#000000", "panel": "#00080f",
+        "card": "#00050a", "btn": "#001524", "hover": "#062a40",
+        "title": "#00101c", "bar": "#000d17", "sep": "#0c2a3e",
+        "hint": "#4b9cc9", "disabled": "#275168",
+        "body": "#00141f", "reply": "#00121c",
+    },
+    "mono_light_on_dark": {
+        "label": "Mono \u2014 White on Black", "mono": True, "radius": 3,
+        "text": "#FFFFFF", "accent": "#FFFFFF", "on_accent": "#000000",
+        "dim": "#5a5a5a", "bg": "#000000", "panel": "#0a0a0a",
+        "card": "#060606", "btn": "#141414", "hover": "#2b2b2b",
+        "title": "#101010", "bar": "#0a0a0a", "sep": "#3a3a3a",
+        "hint": "#9e9e9e", "disabled": "#4f4f4f",
+        "body": "#111111", "reply": "#101010",
+    },
+    "mono_dark_on_light": {
+        "label": "Mono \u2014 Black on White", "mono": True, "radius": 3,
+        "text": "#101010", "accent": "#101010", "on_accent": "#FFFFFF",
+        "dim": "#9e9e9e", "bg": "#FFFFFF", "panel": "#FFFFFF",
+        "card": "#FAFAFA", "btn": "#F0F0F0", "hover": "#DCDCDC",
+        "title": "#E8E8E8", "bar": "#F2F2F2", "sep": "#C4C4C4",
+        "hint": "#5c5c5c", "disabled": "#a8a8a8",
+        "body": "#F7F7F7", "reply": "#F7F7F7",
+    },
+    "professional": {
+        "label": "Professional (Paper)", "mono": False, "radius": 6,
+        "text": "#2B3440", "accent": "#3D5AFE", "on_accent": "#FFFFFF",
+        "dim": "#C9C3B8", "bg": "#FAF7F1", "panel": "#FFFFFF",
+        "card": "#FFFFFF", "btn": "#F2EFE8", "hover": "#E6E1D6",
+        "title": "#EFEBE1", "bar": "#F2EFE8", "sep": "#DDD7CA",
+        "hint": "#6E7683", "disabled": "#B4AFA5",
+        "body": "#FCFAF5", "reply": "#FCFAF5",
+    },
+}
+DEFAULT_THEME = "cyber_green"
+
+# active palette (module-level so widget builders can read it)
+PALETTE = dict(THEMES[DEFAULT_THEME])
+
+
+def theme_font_family():
+    """Font family the current theme wants."""
+    if PALETTE.get("mono", True):
+        return BASE_FONT_FAMILY
+    try:
+        return QApplication.font().family() or "Sans Serif"
+    except Exception:
+        return "Sans Serif"
 
 
 def _pick_monospace_font():
@@ -173,13 +260,113 @@ def _pick_monospace_font():
 
 BASE_FONT_FAMILY = "monospace"   # resolved for real once QApplication exists (main)
 
-PROVIDER_DEFAULTS = {
-    # provider -> (example base url, example model)
-    "lmstudio": ("http://localhost:1234/v1", "(leave blank to use the loaded model)"),
-    "ollama": ("http://localhost:11434/v1", "llama3.1"),
-    "llamacpp": ("http://localhost:8080/v1", "local-model"),
-    "openai": ("https://api.openai.com/v1  (ignored)", "gpt-4o-mini"),
+# --------------------------------------------------------------------------- #
+# LLM providers. Every one speaks the OpenAI chat-completions wire format;
+# the app always POSTs to <base_url>/chat/completions. Endpoints below were
+# checked against each provider's official docs (OpenAI-compat pages).
+#   key_required: whether the hint should push for an API key
+#   base_url:     default/placeholder base URL ('' = user must supply)
+# --------------------------------------------------------------------------- #
+
+PROVIDERS = {
+    "openai_compat": {
+        "label": "OpenAI-compatible (LM Studio, llama.cpp, vLLM, unsloth, custom)",
+        "base_url": "http://localhost:1234/v1",
+        "model": "",
+        "key_required": False,
+        "hint": "Any server that speaks the OpenAI API: LM Studio (enable \u201cServe on "
+                "Local Network\u201d), llama.cpp server, vLLM, unsloth servers, Ollama "
+                "(http://localhost:11434/v1) and similar. Blank model uses the loaded "
+                "model where supported. Local servers need no API key.",
+    },
+    "openai": {
+        "label": "OpenAI",
+        "base_url": "https://api.openai.com/v1",
+        "model": "gpt-4o-mini",
+        "key_required": True,
+        "hint": "OpenAI: paste your API key (sk-...). Default URL is fine unless you "
+                "route through a proxy.",
+    },
+    "anthropic": {
+        "label": "Anthropic (Claude)",
+        "base_url": "https://api.anthropic.com/v1",
+        "model": "claude-sonnet-4-6",
+        "key_required": True,
+        "hint": "Anthropic Claude via its OpenAI-compatible endpoint. Create an API "
+                "key at console.anthropic.com.",
+    },
+    "gemini": {
+        "label": "Google Gemini",
+        "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+        "model": "gemini-3.8-flash",
+        "key_required": True,
+        "hint": "Google AI Studio API key (aistudio.google.com). Uses Google's "
+                "OpenAI-compatible endpoint.",
+    },
+    "openrouter": {
+        "label": "OpenRouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "model": "anthropic/claude-sonnet-4-6",
+        "key_required": True,
+        "hint": "OpenRouter (openrouter.ai): one key for many models; use the "
+                "vendor/model id exactly as listed there.",
+    },
+    "groq": {
+        "label": "Groq",
+        "base_url": "https://api.groq.com/openai/v1",
+        "model": "llama-3.3-70b-versatile",
+        "key_required": True,
+        "hint": "Groq (console.groq.com): very fast hosted open models.",
+    },
+    "mistral": {
+        "label": "Mistral",
+        "base_url": "https://api.mistral.ai/v1",
+        "model": "mistral-large-latest",
+        "key_required": True,
+        "hint": "Mistral La Plateforme (console.mistral.ai).",
+    },
+    "deepseek": {
+        "label": "DeepSeek",
+        "base_url": "https://api.deepseek.com",
+        "model": "deepseek-chat",
+        "key_required": True,
+        "hint": "DeepSeek API (platform.deepseek.com). Base URL has no /v1 suffix.",
+    },
+    "together": {
+        "label": "Together AI",
+        "base_url": "https://api.together.xyz/v1",
+        "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+        "key_required": True,
+        "hint": "Together AI (api.together.ai): hosted open models; use the exact "
+                "model id from their model list.",
+    },
+    "xai": {
+        "label": "xAI (Grok)",
+        "base_url": "https://api.x.ai/v1",
+        "model": "grok-4.7",
+        "key_required": True,
+        "hint": "xAI Grok (docs.x.ai).",
+    },
 }
+PROVIDER_ORDER = list(PROVIDERS.keys())
+
+
+def provider_label(key):
+    return PROVIDERS.get(key, {}).get("label", key)
+
+
+def chat_completions_url(provider, base_url):
+    """Full request URL for a provider. All providers use the OpenAI wire
+    format at <base>/chat/completions; empty base falls back to the default."""
+    p = PROVIDERS.get(provider) or PROVIDERS["openai_compat"]
+    base = (base_url or "").strip().rstrip("/") or p["base_url"].rstrip("/")
+    return base + "/chat/completions"
+
+
+# legacy provider names -> new keys (old saved state is migrated on load)
+LEGACY_PROVIDER_MAP = {"lmstudio": "openai_compat", "llamacpp": "openai_compat",
+                       "ollama": "openai_compat"}
+
 
 DEFAULT_SETTINGS = {
     "LLM_PROVIDER": "lmstudio",
@@ -194,6 +381,7 @@ DEFAULT_SETTINGS = {
     "GENERIC_WEBHOOK_URL": "",
     "NOTIFY_DESKTOP": "1",
     "NOTIFY_SUMMARIES": "1",
+    "UI_THEME": DEFAULT_THEME,
     "MAX_INPUT_TOKENS": 4000,
     "MAX_OUTPUT_TOKENS": 1500,
     "MAX_INPUT_TOKENS_BULK": 20000,
@@ -201,7 +389,7 @@ DEFAULT_SETTINGS = {
     "FETCH_INTERVAL": FETCH_INTERVAL,
     "ITEMS_PER_FEED": ITEMS_PER_FEED,
     "USE_CHUNKED_MODE": "1",
-    "CHUNK_SIZE": 8000,
+    "CHUNK_TOKENS": 2000,   # was CHUNK_SIZE in characters; migrated on load
     "ALERTS_ENABLED": "1",
     "SUMMARIES_ENABLED": "1",
     "ANALYSIS_WINDOW": 3600,
@@ -217,83 +405,144 @@ DEFAULT_SETTINGS = {
 
 INT_SETTINGS = (
     "MAX_INPUT_TOKENS", "MAX_OUTPUT_TOKENS", "MAX_INPUT_TOKENS_BULK",
-    "MAX_OUTPUT_TOKENS_BULK", "FETCH_INTERVAL", "ITEMS_PER_FEED", "CHUNK_SIZE",
+    "MAX_OUTPUT_TOKENS_BULK", "FETCH_INTERVAL", "ITEMS_PER_FEED", "CHUNK_TOKENS",
     "ANALYSIS_WINDOW", "MEMORY_LONG_TERM_MAX_TOKENS",
     "MEMORY_SHORT_TERM_CHUNK_TOKENS", "MEMORY_PROFILER_OUTPUT_TOKENS",
     "LLM_TIMEOUT",
 )
 
-STYLE_SHEET = """
-QWidget { background-color: #000000; color: %(accent)s; }
-QMainWindow::separator { background: #0c2a12; width: 3px; height: 3px; }
+def build_style_sheet(p):
+    """Full Qt stylesheet from a palette dict (see THEMES)."""
+    return """
+QWidget { background-color: %(bg)s; color: %(text)s; }
+QMainWindow::separator { background: %(sep)s; width: 3px; height: 3px; }
 QMainWindow::separator:hover { background: %(accent)s; }
 
 QLabel { background: transparent; font-weight: bold; }
-QLabel[role="hint"] { color: #35a357; font-weight: normal; }
+QLabel[role="hint"] { color: %(hint)s; font-weight: normal; }
 
 QLineEdit, QTextEdit, QTextBrowser, QComboBox, QSpinBox {
-    background-color: #000800; border: 1px solid %(dim)s; border-radius: 3px;
-    padding: 3px; color: %(accent)s;
-    selection-background-color: %(accent)s; selection-color: #000000;
+    background-color: %(panel)s; border: 1px solid %(dim)s;
+    border-radius: %(radius)spx; padding: 3px; color: %(text)s;
+    selection-background-color: %(accent)s; selection-color: %(on_accent)s;
 }
 QLineEdit:focus, QTextEdit:focus, QTextBrowser:focus, QComboBox:focus,
 QSpinBox:focus { border: 1px solid %(accent)s; }
 QComboBox::drop-down { border: 0; width: 16px; }
-QComboBox QAbstractItemView { background-color: #000800; color: %(accent)s;
-    border: 1px solid %(accent)s; selection-background-color: %(dim)s; }
+QComboBox QAbstractItemView { background-color: %(panel)s; color: %(text)s;
+    border: 1px solid %(accent)s; selection-background-color: %(dim)s;
+    selection-color: %(text)s; }
 
-QPushButton, QToolButton { background-color: #001a05; color: %(accent)s;
-    border: 1px solid %(dim)s; border-radius: 3px; padding: 4px 8px; }
-QPushButton:hover, QToolButton:hover { background-color: #032b0c; border-color: %(accent)s; }
-QPushButton:pressed, QToolButton:pressed { background-color: %(accent)s; color: #000000; }
+QPushButton, QToolButton { background-color: %(btn)s; color: %(text)s;
+    border: 1px solid %(dim)s; border-radius: %(radius)spx; padding: 4px 8px; }
+QPushButton:hover, QToolButton:hover { background-color: %(hover)s; border-color: %(accent)s; }
+QPushButton:pressed, QToolButton:pressed { background-color: %(accent)s; color: %(on_accent)s; }
 QPushButton:checked, QToolButton:checked { background-color: %(dim)s; border-color: %(accent)s; }
-QPushButton:disabled, QToolButton:disabled { color: #1f5c2e; border-color: #0c2a12; }
+QPushButton:disabled, QToolButton:disabled { color: %(disabled)s; border-color: %(sep)s; }
 QToolButton[flat="true"] { border: 0; background: transparent; }
 
 QCheckBox { spacing: 6px; }
 QCheckBox::indicator { width: 13px; height: 13px; border: 1px solid %(dim)s;
-    background: #000800; }
+    background: %(panel)s; }
 QCheckBox::indicator:checked { background-color: %(accent)s; border-color: %(accent)s; }
 
 QTabWidget::pane { border: 1px solid %(dim)s; }
-QTabBar::tab { background: #000d02; color: #35a357; padding: 5px 12px;
+QTabBar::tab { background: %(bar)s; color: %(hint)s; padding: 5px 12px;
     border: 1px solid %(dim)s; }
-QTabBar::tab:selected { color: #000000; background: %(accent)s; }
+QTabBar::tab:selected { color: %(on_accent)s; background: %(accent)s; }
 
-QDockWidget { color: %(accent)s; font-weight: bold; }
-QDockWidget::title { background: #001503; padding: 4px 6px;
+QDockWidget { color: %(text)s; font-weight: bold; }
+QDockWidget::title { background: %(title)s; padding: 4px 6px;
     border-bottom: 1px solid %(dim)s; }
 QDockWidget::close-button, QDockWidget::float-button {
-    border: 1px solid %(dim)s; background: #000d02; padding: 1px; }
+    border: 1px solid %(dim)s; background: %(bar)s; padding: 1px; }
 
-QMenuBar { background: #000d02; border-bottom: 1px solid %(dim)s; }
-QMenuBar::item:selected { background: %(accent)s; color: #000000; }
-QMenu { background: #000800; border: 1px solid %(accent)s; }
-QMenu::item:selected { background: %(accent)s; color: #000000; }
+QMenuBar { background: %(bar)s; border-bottom: 1px solid %(dim)s; }
+QMenuBar::item:selected { background: %(accent)s; color: %(on_accent)s; }
+QMenu { background: %(panel)s; border: 1px solid %(dim)s; color: %(text)s; }
+QMenu::item:selected { background: %(accent)s; color: %(on_accent)s; }
 
-QToolBar { background: #000d02; border: 0; border-bottom: 1px solid %(dim)s;
+QToolBar { background: %(bar)s; border: 0; border-bottom: 1px solid %(dim)s;
     spacing: 4px; padding: 3px; }
-QStatusBar { background: #000d02; border-top: 1px solid %(dim)s; color: %(accent)s; }
+QStatusBar { background: %(bar)s; border-top: 1px solid %(dim)s; color: %(text)s; }
 QStatusBar::item { border: 0; }
 
-QScrollBar:vertical { background: #000800; width: 10px; margin: 0; }
+QScrollBar:vertical { background: %(panel)s; width: 10px; margin: 0; }
 QScrollBar::handle:vertical { background: %(dim)s; min-height: 22px; }
 QScrollBar::handle:vertical:hover { background: %(accent)s; }
-QScrollBar:horizontal { background: #000800; height: 10px; margin: 0; }
+QScrollBar:horizontal { background: %(panel)s; height: 10px; margin: 0; }
 QScrollBar::handle:horizontal { background: %(dim)s; min-width: 22px; }
 QScrollBar::add-line, QScrollBar::sub-line { height: 0; width: 0; }
 
-QSplitter::handle { background: #0c2a12; }
+QSplitter::handle { background: %(sep)s; }
 QSplitter::handle:hover { background: %(accent)s; }
-QFrame[role="card"] { border: 1px solid %(dim)s; border-radius: 4px; background: #010501; }
+QFrame[role="card"] { border: 1px solid %(dim)s; border-radius: %(radius)spx;
+    background: %(card)s; }
 
-QToolTip { background-color: #001503; color: %(accent)s;
+QToolTip { background-color: %(title)s; color: %(text)s;
     border: 1px solid %(accent)s; padding: 4px; }
-QStatusBar QLabel { color: #35a357; }
-QProgressBar { background: #000800; border: 1px solid %(dim)s;
-    text-align: center; color: %(accent)s; }
+QStatusBar QLabel { color: %(hint)s; }
+QProgressBar { background: %(panel)s; border: 1px solid %(dim)s;
+    text-align: center; color: %(text)s; }
 QProgressBar::chunk { background-color: %(dim)s; }
-""" % {"accent": ACCENT, "dim": ACCENT_DIM}
+
+QMessageBox, QDialog { background-color: %(bg)s; }
+
+QLabel#bigHeader { color: %(accent)s; font-size: 15pt; letter-spacing: 2px; }
+QLabel#sectionHeader { color: %(accent)s; letter-spacing: 1px; }
+QTextBrowser#entryBody { background-color: %(body)s; border: 0; padding: 4px; }
+QTextEdit#replyBox { background-color: %(reply)s; border: 1px solid %(dim)s; }
+QTextEdit#logView { background-color: %(bg)s; border: 1px solid %(dim)s; }
+""" % p
+
+
+STYLE_SHEET = build_style_sheet(PALETTE)
+
+
+def _make_icon(kind):
+    """Theme-aware 16px vector glyph drawn in the active palette colour.
+    OS 'standard icons' embed their own colours (a baked-green checkmark etc.)
+    and clash with non-default themes, so every toolbar glyph is our own."""
+    px = QPixmap(16, 16)
+    px.fill(Qt.transparent)
+    p = QPainter(px)
+    p.setRenderHint(QPainter.Antialiasing)
+    col = QColor(PALETTE["accent"])
+    pen = QPen(col)
+    pen.setWidthF(1.6)
+    p.setPen(pen)
+    p.setBrush(Qt.NoBrush)
+    if kind == "fetch":                       # down arrow into tray
+        p.drawLine(8, 2, 8, 10)
+        p.drawPolyline(QPolygonF([QPointF(4.5, 6.5), QPointF(8, 10.5), QPointF(11.5, 6.5)]))
+        p.drawLine(3, 13, 13, 13)
+    elif kind == "analyze":                   # play triangle
+        tri = QPolygonF([QPointF(4, 2.5), QPointF(4, 13.5), QPointF(13.5, 8)])
+        p.setBrush(col)
+        p.drawPolygon(tri)
+    elif kind == "auto":                      # radar / eye-ish circle + dot
+        p.drawEllipse(QPointF(8, 8), 5.6, 5.6)
+        p.setBrush(col)
+        p.drawEllipse(QPointF(8, 8), 2.0, 2.0)
+    elif kind == "settings":                  # gear (simple 8-tooth)
+        import math
+        outer = QPolygonF()
+        for i in range(16):
+            ang = math.pi * 2 * i / 16
+            r = 7.0 if i % 2 == 0 else 5.0
+            outer.append(QPointF(8 + r * math.cos(ang), 8 + r * math.sin(ang)))
+        p.setBrush(col)
+        p.drawPolygon(outer)
+        p.setBrush(QColor(PALETTE["btn"]))
+        p.drawEllipse(QPointF(8, 8), 2.6, 2.6)
+    elif kind == "rain":                      # three falling strokes
+        for x0 in (4.0, 8.0, 12.0):
+            p.drawLine(QPointF(x0, 3), QPointF(x0 - 2, 13))
+    elif kind == "folder":                    # open folder
+        p.drawPolygon(QPolygonF([QPointF(2, 4.5), QPointF(6.5, 4.5), QPointF(8, 6.5),
+                                 QPointF(14, 6.5), QPointF(14, 13), QPointF(2, 13)]))
+    p.end()
+    return QIcon(px)
 
 
 def hint_label(text):
@@ -306,13 +555,13 @@ def hint_label(text):
 def section_header(text):
     """Big glowing section header used by the wizard and welcome screen."""
     lbl = QLabel(text)
-    lbl.setStyleSheet("color: %s; font-size: 15pt; letter-spacing: 2px;" % ACCENT)
+    lbl.setObjectName("bigHeader")
     return lbl
 
 
 def header_label(text):
     lbl = QLabel(text)
-    lbl.setStyleSheet("color: %s; letter-spacing: 1px;" % ACCENT)
+    lbl.setObjectName("sectionHeader")
     return lbl
 
 
@@ -445,7 +694,8 @@ class GreenRainOverlay(QWidget):
         line_h = QFontMetrics(self.font).height()
         for col in self.columns:
             x, y, length, chars = col["x"], col["y"], col["length"], col["chars"]
-            painter.setPen(QColor(180, 255, 150, 220))
+            head = QColor(PALETTE["accent"]); head.setAlpha(230)
+            painter.setPen(head)
             head_char = chars[-1] if chars else self.random_char()
             painter.drawText(x, y, head_char)
             for i in range(length - 1):
@@ -453,7 +703,8 @@ class GreenRainOverlay(QWidget):
                 if idx < 0:
                     break
                 alpha = max(20, int(220 * (1 - (i + 1) / (length + 1))))
-                painter.setPen(QColor(0, 255, 65, alpha))
+                trail = QColor(PALETTE["accent"]); trail.setAlpha(alpha)
+                painter.setPen(trail)
                 painter.drawText(x, y - (i + 1) * line_h, chars[idx])
 
 
@@ -522,7 +773,7 @@ class FeedEntry(QFrame):
         hlay.addWidget(self.toggle_btn)
 
         self.cap = QLabel(title)
-        self.cap.setStyleSheet("color: %s;" % ACCENT)
+        self.cap.setObjectName("sectionHeader")
         hlay.addWidget(self.cap, 1)
         lay.addWidget(header_row)
 
@@ -534,7 +785,7 @@ class FeedEntry(QFrame):
         safe_title = html.escape(title)
         safe_body = html.escape(self._body_text).replace("\n", "<br>")
         self.body.setHtml("<b>%s</b><hr>%s" % (safe_title, safe_body))
-        self.body.setStyleSheet("background-color: #001900; border: 0; padding: 4px;")
+        self.body.setObjectName("entryBody")
         self.body.setMinimumHeight(120)
         self.body.setVisible(False)
         lay.addWidget(self.body)
@@ -578,7 +829,7 @@ class _TaskThread(threading.Thread):
             self._fn()
         except Exception as exc:                      # noqa: BLE001
             print("Task error: %s" % exc)
-        if self._finished_signal is not None and not self._finished_signal.isEmpty():
+        if self._finished_signal is not None:
             try:
                 self._finished_signal.emit()
             except Exception:
@@ -616,10 +867,16 @@ class SettingsDialog(QDialog):
         form.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
         form.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
         prov = QComboBox()
-        prov.addItems(["lmstudio", "ollama", "llamacpp", "openai"])
-        prov.setCurrentText(str(self.app.settings.get("LLM_PROVIDER", "lmstudio")))
-        prov.setToolTip("Where your language model runs. Pick the server you have "
-                        "open on this machine or network.")
+        for _k in PROVIDER_ORDER:
+            prov.addItem(PROVIDERS[_k]["label"], _k)
+        cur_prov = str(self.app.settings.get("LLM_PROVIDER", "openai_compat"))
+        cur_prov = LEGACY_PROVIDER_MAP.get(cur_prov, cur_prov)
+        idx = prov.findData(cur_prov)
+        if idx >= 0:
+            prov.setCurrentIndex(idx)
+        prov.setToolTip("Where your language model runs. Local servers (LM Studio, "
+                        "llama.cpp, Ollama, vLLM) all use the OpenAI-compatible "
+                        "entry; hosted providers need an API key.")
         self.fields["LLM_PROVIDER"] = prov
         form.addRow("Provider:", prov)
 
@@ -658,9 +915,31 @@ class SettingsDialog(QDialog):
         conn_hint = hint_label("")
         form.addRow("", conn_hint)
         self._conn_hint = conn_hint
-        prov.currentTextChanged.connect(self._provider_changed)
-        self._provider_changed(prov.currentText())
+        prov.currentIndexChanged.connect(lambda: self._provider_changed(prov.currentData()))
+        self._provider_changed(prov.currentData())
         self._add_tab(tabs, conn, " Connection ")
+
+        # ---- Appearance ----------------------------------------------------
+        app_tab = QWidget()
+        aform = QFormLayout(app_tab)
+        aform.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        theme_combo = QComboBox()
+        for _k in THEMES:
+            theme_combo.addItem(THEMES[_k]["label"], _k)
+        cur_theme = str(self.app.settings.get("UI_THEME", DEFAULT_THEME))
+        idx = theme_combo.findData(cur_theme)
+        theme_combo.setCurrentIndex(idx if idx >= 0 else 0)
+        theme_combo.setToolTip("Colour theme. Changes apply instantly so you can "
+                               "preview; Cancel restores the old one.")
+        self.fields["UI_THEME"] = theme_combo
+        aform.addRow("Theme:", theme_combo)
+        # live preview: apply instantly (no persist); Cancel restores on reject
+        self._theme_at_open = cur_theme if idx >= 0 else DEFAULT_THEME
+        theme_combo.currentIndexChanged.connect(
+            lambda: self.app.apply_theme(theme_combo.currentData(), persist=False))
+        aform.addRow(hint_label("Ctrl+= / Ctrl+- zoom every widget; Ctrl+0 resets. "
+                                "\u201cProfessional\u201d switches to the system UI font."))
+        self._add_tab(tabs, app_tab, " Appearance ")
 
         # ---- Limits --------------------------------------------------------
         limits = QWidget()
@@ -675,9 +954,9 @@ class SettingsDialog(QDialog):
                       "Token cap for accumulated feeds sent during bulk trend analysis.")
         self._add_row(lform, "Bulk report length:", "MAX_OUTPUT_TOKENS_BULK", 16, 500000,
                       "Cap on the bulk trend report itself.")
-        self._add_row(lform, "Chunk size (characters):", "CHUNK_SIZE", 500, 2000000,
+        self._add_row(lform, "Chunk size (tokens):", "CHUNK_TOKENS", 200, 500000,
                       "When chunking is on, alert input is split into pieces this many "
-                      "CHARACTERS long (not tokens).")
+                      "TOKENS long.")
         self._add_row(lform, "Items per feed:", "ITEMS_PER_FEED", 1, 500,
                       "Maximum new entries taken from each feed per cycle. "
                       "Already-seen items are skipped automatically.")
@@ -888,44 +1167,25 @@ class SettingsDialog(QDialog):
 
     # -- provider guidance ----------------------------------------------------
     def _provider_changed(self, provider):
-        url_example, model_example = PROVIDER_DEFAULTS.get(
-            provider, ("http://localhost:1234/v1", ""))
-        self.url_edit.setPlaceholderText(url_example)
-        if provider == "lmstudio":
-            self.model_edit.setPlaceholderText("blank is fine \u2014 uses the loaded model")
-            self._conn_hint.setText(
-                "LM Studio: load your model, then in Server Settings turn on "
-                "\u201cServe on Local Network\u201d and set the URL above "
-                "(e.g. http://localhost:1234/v1). No API key needed.")
-        elif provider == "ollama":
-            self.model_edit.setPlaceholderText("e.g. llama3.1  (ollama list shows names)")
-            self._conn_hint.setText(
-                "Ollama: run \u201collama serve\u201d (usually automatic) and enter the "
-                "model name from \u201collama list\u201d. URL is usually "
-                "http://localhost:11434/v1. No API key needed.")
-        elif provider == "llamacpp":
-            self.model_edit.setPlaceholderText("name you started the server with (--alias)")
-            self._conn_hint.setText(
-                "llama.cpp server: start it with --api-key if you want auth, then point "
-                "the URL at its /v1 endpoint.")
-        else:
-            self.model_edit.setPlaceholderText("e.g. gpt-4o-mini")
-            self._conn_hint.setText(
-                "OpenAI: only the API key is required; the URL field is ignored and "
-                "requests go straight to api.openai.com.")
+        """Refresh URL/model placeholders + guidance from the provider registry.
+        `provider` here is the combo's DATA value (a PROVIDERS key)."""
+        p = PROVIDERS.get(provider) or PROVIDERS["openai_compat"]
+        self.url_edit.setPlaceholderText(p["base_url"])
+        self.model_edit.setPlaceholderText(p["model"] or "blank uses the loaded model")
+        hint = p["hint"]
+        if not p["key_required"]:
+            hint += " Leave the API key blank for local servers."
+        self._conn_hint.setText(hint)
 
     def _test_connection(self):
         """Fire a 1-token request at the *dialog's current* values."""
         self.test_btn.setEnabled(False)
         self.test_result.setText("testing\u2026")
-        provider = self.fields["LLM_PROVIDER"].currentText()
+        provider = self.fields["LLM_PROVIDER"].currentData()
         base_url = self.url_edit.text().strip().rstrip("/")
         model = self.model_edit.text().strip()
         api_key = self.key_edit.text().strip()
-        if provider in ("lmstudio", "ollama", "llamacpp"):
-            url = "%s/chat/completions" % base_url
-        else:
-            url = "https://api.openai.com/v1/chat/completions"
+        url = chat_completions_url(provider, base_url)
 
         def work():
             headers = {"Content-Type": "application/json"}
@@ -1022,6 +1282,15 @@ class SettingsDialog(QDialog):
                 widget.setText(str(default))
         self.dir_edit.setText(DEFAULT_SETTINGS["REPORT_OUTPUT_DIR"])
 
+    def reject(self):
+        # undo any live theme preview before closing
+        try:
+            if getattr(self, "_theme_at_open", None):
+                self.app.apply_theme(self._theme_at_open, persist=False)
+        except Exception:
+            pass
+        super().reject()
+
     def _commit(self):
         for key, widget in self.fields.items():
             if isinstance(widget, QSpinBox):
@@ -1029,7 +1298,9 @@ class SettingsDialog(QDialog):
             elif isinstance(widget, QCheckBox):
                 self.app.settings[key] = "1" if widget.isChecked() else "0"
             elif isinstance(widget, QComboBox):
-                self.app.settings[key] = widget.currentText()
+                data = widget.currentData()
+                self.app.settings[key] = (data if data is not None
+                                          else widget.currentText())
             elif isinstance(widget, QLineEdit):
                 self.app.settings[key] = widget.text()
         self.app.settings["REPORT_OUTPUT_DIR"] = (self.dir_edit.text().strip()
@@ -1349,10 +1620,13 @@ class SetupWizard(QDialog):
         form = QFormLayout()
         form.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.w_prov = QComboBox()
-        self.w_prov.addItems(["lmstudio", "ollama", "llamacpp", "openai"])
-        cur = self._data.get("provider", "lmstudio")
-        if cur in ("lmstudio", "ollama", "llamacpp", "openai"):
-            self.w_prov.setCurrentText(cur)
+        for _k in PROVIDER_ORDER:
+            self.w_prov.addItem(PROVIDERS[_k]["label"], _k)
+        cur = LEGACY_PROVIDER_MAP.get(self._data.get("provider", "openai_compat"),
+                                      self._data.get("provider", "openai_compat"))
+        idx = self.w_prov.findData(cur)
+        if idx >= 0:
+            self.w_prov.setCurrentIndex(idx)
         form.addRow("Provider:", self.w_prov)
         self.w_url = QLineEdit(self._data.get("url", ""))
         form.addRow("Server URL:", self.w_url)
@@ -1378,29 +1652,22 @@ class SetupWizard(QDialog):
         self.page_layout.addLayout(form)
         self.page_layout.addStretch(1)
 
-    def _prov_hint(self, provider):
-        url_example, model_example = PROVIDER_DEFAULTS.get(provider, ("", ""))
-        self.w_url.setPlaceholderText(url_example)
-        self.w_model.setPlaceholderText(model_example)
-        hints = {
-            "lmstudio": "LM Studio: load a model, then enable \u201cServe on Local "
-                        "Network\u201d in Server Settings. Default port 1234.",
-            "ollama":   "Ollama: start the app or run \u201collama serve\u201d, then "
-                        "type a model name from \u201collama list\u201d.",
-            "llamacpp": "llama.cpp server: point the URL at its /v1 endpoint.",
-            "openai":   "OpenAI: paste an API key (sk-...). The URL is ignored.",
-        }
-        self.w_hint.setText(hints.get(provider, ""))
+    def _prov_hint(self, *_a):
+        provider = self.w_prov.currentData()
+        p = PROVIDERS.get(provider) or PROVIDERS["openai_compat"]
+        self.w_url.setPlaceholderText(p["base_url"])
+        self.w_model.setPlaceholderText(p["model"] or "blank uses the loaded model")
+        hint = p["hint"]
+        if not p["key_required"]:
+            hint += " Leave the API key blank for local servers."
+        self.w_hint.setText(hint)
 
     def _test(self):
-        provider = self.w_prov.currentText()
+        provider = self.w_prov.currentData()
         base_url = self.w_url.text().strip().rstrip("/")
         model = self.w_model.text().strip()
         api_key = self.w_key.text().strip()
-        if provider in ("lmstudio", "ollama", "llamacpp"):
-            url = "%s/chat/completions" % base_url
-        else:
-            url = "https://api.openai.com/v1/chat/completions"
+        url = chat_completions_url(provider, base_url)
 
         def work():
             headers = {"Content-Type": "application/json"}
@@ -1495,15 +1762,17 @@ class SetupWizard(QDialog):
             self._data["overall"] = self.w_overall.toPlainText().strip()
             self._data["subs"] = self.w_subs.toPlainText().strip()
         elif self.step == 1:
-            self._data["provider"] = self.w_prov.currentText()
+            self._data["provider"] = self.w_prov.currentData()
             self._data["url"] = self.w_url.text().strip()
             self._data["model"] = self.w_model.text().strip()
             self._data["key"] = self.w_key.text().strip()
 
     def _apply(self):
-        prof = self._data.get("provider") or self.app.settings.get("LLM_PROVIDER", "lmstudio")
+        prof = (self._data.get("provider")
+                or self.app.settings.get("LLM_PROVIDER", "openai_compat"))
+        prof = LEGACY_PROVIDER_MAP.get(prof, prof)
         self.app.settings["LLM_PROVIDER"] = prof
-        default_url = PROVIDER_DEFAULTS.get(prof, ("",))[0]
+        default_url = PROVIDERS.get(prof, PROVIDERS["openai_compat"])["base_url"]
         typed_url = self._data.get("url", "")
         self.app.settings["LLM_BASE_URL"] = typed_url or default_url
         self.app.settings["LLM_MODEL"] = self._data.get("model", "")
@@ -1644,10 +1913,13 @@ class SentinelWindow(QMainWindow):
 
         if self.ui_font_pt != DEFAULT_UI_FONT_PT:
             font = QApplication.font()
-            font.setFamily(BASE_FONT_FAMILY)
+            font.setFamily(theme_font_family())
             font.setPointSize(self.ui_font_pt)
             QApplication.setFont(font)
 
+        saved_theme = str(self.settings.get("UI_THEME", DEFAULT_THEME))
+        if saved_theme in THEMES and saved_theme != DEFAULT_THEME:
+            self.apply_theme(saved_theme, persist=False)
         self.apply_settings()
         self.act_auto.setChecked(True)
         self.status_tick.start()
@@ -1718,8 +1990,12 @@ class SentinelWindow(QMainWindow):
                     return pixmap
             return None
 
-        def make(text, slot=None, shortcut=None, checkable=False, icon=None):
+        self._themed_actions = {}
+
+        def make(text, slot=None, shortcut=None, checkable=False, icon=None, themed=None):
             action = QAction(text, self)
+            if themed:
+                self._themed_actions[themed] = action
             if callable(slot):
                 action.triggered.connect(slot)
             if shortcut:
@@ -1729,22 +2005,23 @@ class SentinelWindow(QMainWindow):
             else:
                 action.setStatusTip(text)
             action.setCheckable(checkable)
-            if icon is not None:
+            if isinstance(icon, QIcon):
+                action.setIcon(icon)
+            elif icon is not None:
                 action.setIcon(style.standardIcon(icon))
             self.addAction(action)
             return action
 
         self.act_fetch = make("Fetch / Send Now", self.start_fetch_thread, "Ctrl+Return",
-                              icon=std_icon("SP_BrowserReload"))
+                              icon=_make_icon("fetch"), themed="fetch")
         self.act_analyze = make("Analyze Now", self.analyze_now, "Ctrl+B",
-                                icon=std_icon("SP_MediaPlay"))
+                                icon=_make_icon("analyze"), themed="analyze")
         self.act_auto = make("Auto-Fetch Enabled", None, checkable=True,
-                             icon=std_icon("SP_BrowserToggle", "SP_DialogApplyButton"))
+                             icon=_make_icon("auto"), themed="auto")
         self.act_auto.setChecked(True)
         self.act_auto.toggled.connect(self._toggle_auto_fetch)
         self.act_settings = make("Settings\u2026", self.open_settings_window, "Ctrl+,",
-                                 icon=std_icon("SP_FileDialogDetailView",
-                                               "SP_FileDialogDetailedView"))
+                                 icon=_make_icon("settings"), themed="settings")
 
         self.act_sources = make("Load Data Sources\u2026", self.load_data_sources, "Ctrl+O")
         self.act_quickstart_sources = make(
@@ -1766,7 +2043,7 @@ class SentinelWindow(QMainWindow):
         self.act_clear_feed = make("Clear Report Feed", self.clear_history)
 
         self.act_rain = make("Screen Saver Rain", None, "F1", checkable=True,
-                             icon=std_icon("SP_DesktopIcon"))
+                             icon=_make_icon("rain"), themed="rain")
         self.act_rain.toggled.connect(self.toggle_rain)
 
         self.act_zoom_in = make("Increase UI Scale", lambda: self.zoom_ui(1), "Ctrl+=")
@@ -1805,8 +2082,7 @@ class SentinelWindow(QMainWindow):
 
         self.reply_box = QTextEdit(readOnly=True)
         self.reply_box.setLineWrapMode(QTextEdit.WidgetWidth)
-        self.reply_box.setStyleSheet("background-color: #001a03; border: 1px solid %s;"
-                                     % ACCENT_DIM)
+        self.reply_box.setObjectName("replyBox")
         self.reply_box.setPlaceholderText(
             "AWAITING SIGNAL \u2014 set topics on the left, point Sentinel at your LLM "
             "(Run \u2192 Settings), then Fetch / Send (Ctrl+Enter).")
@@ -1827,7 +2103,7 @@ class SentinelWindow(QMainWindow):
         self.log = QTextEdit(readOnly=True)
         self.log.setLineWrapMode(QTextEdit.NoWrap)
         self.log.document().setMaximumBlockCount(5000)   # bounded memory on long runs
-        self.log.setStyleSheet("background-color: #000000; border: 1px solid %s;" % ACCENT_DIM)
+        self.log.setObjectName("logView")
         self.log.setPlaceholderText("Runtime chatter, feed errors and LLM status.")
         llay.addWidget(self.log, 1)
         clear_btn.clicked.connect(self.log.clear)
@@ -1925,7 +2201,7 @@ class SentinelWindow(QMainWindow):
         logo_btn.setFlat(True)
         logo_btn.setToolTip("FETCH / SEND NOW \u2014 pull the feeds and screen them for "
                             "alerts (Ctrl+Enter)")
-        logo_btn.setStyleSheet("QPushButton { border: none; background-color: #000000; }")
+        logo_btn.setStyleSheet("QPushButton { border: none; background-color: transparent; }")
         logo_btn.clicked.connect(self.start_fetch_thread)
         logo_layout = QVBoxLayout(logo_btn)
         logo_layout.setContentsMargins(0, 0, 0, 0)
@@ -2174,7 +2450,7 @@ class SentinelWindow(QMainWindow):
         else:
             self.ui_font_pt = max(7, min(20, self.ui_font_pt + direction))
         font = QApplication.font()
-        font.setFamily(BASE_FONT_FAMILY)
+        font.setFamily(theme_font_family())
         font.setPointSize(self.ui_font_pt)
         QApplication.setFont(font)
         self.save_app_state()
@@ -2301,6 +2577,30 @@ class SentinelWindow(QMainWindow):
             "Telegram, ntfy, generic webhook, desktop popups.\n\nApp data folder: %s"
             % (APP_VERSION, APP_DIR))
 
+    def apply_theme(self, theme_key=None, persist=True):
+        """Switch the whole UI to a palette from THEMES (live preview safe)."""
+        global PALETTE
+        if theme_key not in THEMES:
+            theme_key = DEFAULT_THEME
+        PALETTE = dict(THEMES[theme_key])
+        self.settings["UI_THEME"] = theme_key
+        qapp = QApplication.instance()
+        qapp.setStyleSheet(build_style_sheet(PALETTE))
+        font = qapp.font()
+        font.setFamily(theme_font_family())
+        if PALETTE.get("mono", True):
+            font.setStyleHint(QFont.Monospace)
+        font.setPointSize(self.ui_font_pt)
+        qapp.setFont(font)
+        # toolbar glyphs are drawn in the accent colour -> redraw for new theme
+        for kind, act in getattr(self, "_themed_actions", {}).items():
+            try:
+                act.setIcon(_make_icon(kind))
+            except Exception:
+                pass
+        if persist:
+            self.save_app_state()
+
     def apply_settings(self):
         """Push settings dict into timers / labels. Called after any change."""
         for key in INT_SETTINGS:
@@ -2361,7 +2661,7 @@ class SentinelWindow(QMainWindow):
     def _finish_task(self, kind):
         with self._worker_lock:
             task = getattr(self, "_%s_worker" % kind, None)
-            setattr(self, "_%s_worker", None)
+            setattr(self, "_%s_worker" % kind, None)
             if task in self.active_threads:
                 self.active_threads.remove(task)
         return task
@@ -2432,7 +2732,8 @@ class SentinelWindow(QMainWindow):
 
     def open_settings_window(self):
         dlg = SettingsDialog(self)
-        dlg.exec()
+        if dlg.exec():   # accepted -> persist everything incl. previewed theme
+            self.save_app_state()
 
     # legacy setting names folded into simpler ones (v3); old app_state.json
     # files keep working through these aliases
@@ -2930,10 +3231,7 @@ class SentinelWindow(QMainWindow):
                    "messages": [{"role": "user", "content": prompt}],
                    "max_tokens": max_tokens}
         try:
-            if provider in ("lmstudio", "ollama", "llamacpp"):
-                url = "%s/chat/completions" % base_url
-            else:
-                url = "https://api.openai.com/v1/chat/completions"
+            url = chat_completions_url(provider, base_url)
             timeout = self.get_setting("LLM_TIMEOUT", int) or 900
             last_exc = None
             for attempt in (1, 2):
@@ -3141,7 +3439,8 @@ class SentinelWindow(QMainWindow):
 
             alert_input = self.truncate_tokens(text, False)
             use_chunked = self.get_setting("USE_CHUNKED_MODE", int) == 1
-            c_size = self.get_setting("CHUNK_SIZE", int) or 4000
+            c_tokens = self.get_setting("CHUNK_TOKENS", int) or 2000
+            c_size = c_tokens * 4          # token -> char budget (same rule as trims)
             chunks = ([alert_input] if not use_chunked
                       else [alert_input[i:i + c_size] for i in range(0, len(alert_input), c_size)])
             lt_mem = self.load_long_term_memory()
@@ -3243,6 +3542,24 @@ class SentinelWindow(QMainWindow):
             return DEFAULT_REPORT_OUTPUT_DIR
         return path_str
 
+    @staticmethod
+    def _migrate_settings(settings):
+        """Bring an old app_state.json settings dict up to the current model."""
+        changed = False
+        prov = settings.get("LLM_PROVIDER")
+        if prov in LEGACY_PROVIDER_MAP:
+            settings["LLM_PROVIDER"] = LEGACY_PROVIDER_MAP[prov]
+            changed = True
+        if "CHUNK_SIZE" in settings:
+            # character-based chunking -> token-based (same 4 chars/token rule)
+            try:
+                settings["CHUNK_TOKENS"] = max(200, int(settings["CHUNK_SIZE"]) // 4)
+            except (TypeError, ValueError):
+                pass
+            del settings["CHUNK_SIZE"]
+            changed = True
+        return changed
+
     def load_app_state(self):
         try:
             if not os.path.exists(STATE_FILE):
@@ -3252,6 +3569,7 @@ class SentinelWindow(QMainWindow):
             saved = dict(DEFAULT_SETTINGS)
             raw = state.get("settings", {}) or {}
             saved.update(raw)
+            self._migrate_settings(saved)
             # v3 merged SUMMARY_ENABLED + BULK_ANALYSIS into SUMMARIES_ENABLED;
             # honour either legacy key from older state files (on = either was on)
             if "SUMMARIES_ENABLED" not in raw:

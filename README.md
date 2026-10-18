@@ -108,7 +108,7 @@ Windows: `python ShunyaNet_Sentinel.py`
 On first launch, Sentinel walks you through setup with a guided **Setup Wizard** (reopen anytime with `Ctrl+W` or Help → Setup Wizard):
 
 1. **Topics** – your overall topic and signals (one per line). Autosaves as you type.
-2. **Model connection** – pick LM Studio / Ollama / llama.cpp / OpenAI; the wizard shows exactly what to enter, with a **Test Connection** button so you know it works before relying on it.
+2. **Model connection** – pick your provider (LM Studio and other local servers live under "OpenAI-compatible"; hosted picks include OpenAI, Claude, Gemini, OpenRouter, Groq, Mistral, DeepSeek, Together, Grok); the wizard shows exactly what to enter, with a **Test Connection** button so you know it works before relying on it.
 3. **Feeds** – one click loads the bundled Quick-Start (short) or World News (long) list.
 4. **Confirm** – review and launch your first fetch (the button actually fetches).
 
@@ -148,12 +148,13 @@ Every setting has a hover tooltip; Help (`F2`) lists keyboard shortcuts. Matrix-
 
    Reddit URLs work by adding `.rss`; Bluesky profiles work as `https://bsky.app/profile/NAME/RSS`. Tools like RSS-Bridge convert sites without feeds (e.g., Telegram). **Randomize your list order** so rate-limiting sites don't get hit in bursts (Sentinel also serializes requests per host automatically).
 
-4. **Settings** (`Ctrl+,`) — five tabs, every field with a tooltip:
+4. **Settings** (`Ctrl+,`) — six tabs, every field with a tooltip:
 
 | Tab | Key settings |
 |-----|--------------|
 | **Connection** | Provider, Server URL, Model name, API key, Test Connection |
-| **Limits** | Max input/output tokens (1 token ≈ 4 characters), chunk size (in CHARACTERS), items per feed, LLM timeout |
+| **Appearance** | Colour theme (live preview; Cancel restores) |
+| **Limits** | Max input/output tokens, chunk size (tokens), items per feed, LLM timeout — everything token-based |
 | **Automation** | Auto-fetch interval; Mode 1: instant Alerts; Mode 2: periodic Summaries with analysis window |
 | **Notifications** | Slack / Discord / Telegram / ntfy / generic webhook; desktop popups; whether summaries are pushed too; Send Test Notification |
 | **Memory & Output** | Report folder, sequential long-term memory profiler and its caps |
@@ -161,11 +162,32 @@ Every setting has a hover tooltip; Help (`F2`) lists keyboard shortcuts. Matrix-
 Defaults work for most setups. Notable values: `FETCH_INTERVAL` (default 600 s — must exceed your LLM's processing time or a backlog builds), `MAX_INPUT_TOKENS` (keep below your model's context window; enable chunking if you exceed it).
 
 ##### Provider cheat sheet
-| | lmstudio | ollama | llamacpp | openai |
-|---|---|---|---|---|
-| URL | `http://localhost:1234/v1` | `http://localhost:11434/v1` | its `/v1` endpoint | ignored |
-| Model | blank = loaded model | e.g. `llama3.1` | your `--alias` | e.g. `gpt-4o-mini` |
-| API key | blank | blank | if you set one | `sk-...` |
+
+The provider dropdown covers local servers and the popular hosted APIs. Every
+entry uses the same OpenAI chat-completions format under the hood, so anything
+not listed still works through **OpenAI-compatible**:
+
+| Provider | Base URL | API key |
+|---|---|---|
+| OpenAI-compatible (LM Studio, Ollama, llama.cpp, vLLM, unsloth, …) | `http://localhost:1234/v1` (Ollama: `:11434/v1`) | blank locally |
+| OpenAI | `https://api.openai.com/v1` | `sk-...` |
+| Anthropic (Claude) | `https://api.anthropic.com/v1` | from console.anthropic.com |
+| Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | from aistudio.google.com |
+| OpenRouter | `https://openrouter.ai/api/v1` | from openrouter.ai |
+| Groq | `https://api.groq.com/openai/v1` | from console.groq.com |
+| Mistral | `https://api.mistral.ai/v1` | from console.mistral.ai |
+| DeepSeek | `https://api.deepseek.com` (no `/v1`) | from platform.deepseek.com |
+| Together AI | `https://api.together.xyz/v1` | from api.together.ai |
+| xAI (Grok) | `https://api.x.ai/v1` | from docs.x.ai |
+
+##### Themes
+
+Six built-in looks, switchable live in Settings → Appearance: **Cyberpunk
+Green** (the classic), **Cyberpunk Amber**, **Cyberpunk Blue**,
+**Mono — White on Black**, **Mono — Black on White**, and **Professional
+(Paper)** — a clean light theme that also switches to the system UI font.
+The choice is remembered across restarts; `Ctrl+=` / `Ctrl+-` / `Ctrl+0`
+scale every widget.
 
 5. **Reports & agent files** — every alert/summary is written to the Report folder (`REPORT_OUTPUT_DIR`, default `Report_Output/`) with timestamped names, and `agent_handoff.json` is refreshed to point at the newest artifacts. File → Open Report Folder, or Help → Agent / Script Integration for paths.
 
