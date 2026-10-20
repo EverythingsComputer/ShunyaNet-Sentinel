@@ -62,7 +62,7 @@ import threading
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 
-APP_VERSION = "3.1.0"
+APP_VERSION = "3.2.0"
 
 import requests
 import feedparser
@@ -382,6 +382,7 @@ DEFAULT_SETTINGS = {
     "NOTIFY_DESKTOP": "1",
     "NOTIFY_SUMMARIES": "1",
     "UI_THEME": DEFAULT_THEME,
+    "FEED_LINK_PREVIEWS": "0",   # show host-name preview line under links
     "MAX_INPUT_TOKENS": 4000,
     "MAX_OUTPUT_TOKENS": 1500,
     "MAX_INPUT_TOKENS_BULK": 20000,
@@ -491,7 +492,7 @@ QMessageBox, QDialog { background-color: %(bg)s; }
 QLabel#bigHeader { color: %(accent)s; font-size: 15pt; letter-spacing: 2px; }
 QLabel#sectionHeader { color: %(accent)s; letter-spacing: 1px; }
 QTextBrowser#entryBody { background-color: %(body)s; border: 0; padding: 4px; }
-QTextEdit#replyBox { background-color: %(reply)s; border: 1px solid %(dim)s; }
+QTextEdit#replyBox, QTextBrowser#replyBox { background-color: %(reply)s; border: 1px solid %(dim)s; }
 QTextEdit#logView { background-color: %(bg)s; border: 1px solid %(dim)s; }
 """ % p
 
@@ -748,10 +749,62 @@ class ScalableLabel(QLabel):
     scale = Property(float, getScale, setScale)
 
 
+# --------------------------------------------------------------------------- #
+# Report text -> HTML rendering (clickable links, optional previews)
+# --------------------------------------------------------------------------- #
+
+# URLs are matched up to whitespace/quotes; trailing punctuation is peeled off
+# so a link ending a sentence ("...see here.") does not swallow the period.
+_URL_RE = re.compile(r"https?://[^\s<>()\"']+")
+_TRAILING_PUNCT = ".,;:!?)]}'\u201d\u2019"
+
+
+def _link_html(url, accent, include_previews):
+    href = html.escape(url, quote=True)
+    shown = html.escape(url[:80] + ("\u2026" if len(url) > 80 else ""))
+    out = '<a href="%s" style="color:%s; text-decoration:underline;">%s</a>' % (
+        href, accent, shown)
+    if include_previews:
+        host = re.match(r"https?://([^/]+)", url)
+        host = host.group(1) if host else url
+        out += ('<div style="color:%s; font-size:8pt; margin:0 0 4px 12px;">'
+                '\u21b3 %s</div>' % ("#888", html.escape(host)))
+    return out
+
+
+def render_report_html(text, include_previews=False, accent=None):
+    """Escape report text and turn bare URLs into clickable anchors.
+
+    Returns HTML safe for setHtml(); preserves line breaks via <br>. The link
+    colour follows the active theme's accent so it stays readable on every
+    palette (a hardcoded blue vanishes on dark cyberpunk backgrounds)."""
+    accent = accent or PALETTE.get("accent", "#00FF41")
+    text = text or ""
+    pos, out = 0, []
+    for m in _URL_RE.finditer(text):
+        url = m.group(0)
+        trail = ""
+        while url and url[-1] in _TRAILING_PUNCT:
+            # keep balanced-paren case simple: never trim the only '(' context
+            trail = url[-1] + trail
+            url = url[:-1]
+        if not url:
+            continue
+        out.append(html.escape(text[pos:m.start()]).replace("\n", "<br>"))
+        out.append(_link_html(url, accent, include_previews))
+        if trail:
+            out.append(html.escape(trail))
+        pos = m.end()
+    if not out:
+        return html.escape(text).replace("\n", "<br>")
+    out.append(html.escape(text[pos:]).replace("\n", "<br>"))
+    return "".join(out)
+
+
 class FeedEntry(QFrame):
     """One collapsible item in the Report Feed dock."""
 
-    def __init__(self, title, body_text, parent=None):
+    def __init__(self, title, body_text, parent=None, include_previews=False):
         super().__init__(parent)
         self._body_text = body_text or ""
         self.setProperty("role", "card")
@@ -783,8 +836,9 @@ class FeedEntry(QFrame):
         # Escape before embedding in HTML: report text and titles can contain
         # <, > or & characters which used to corrupt the rendered entry.
         safe_title = html.escape(title)
-        safe_body = html.escape(self._body_text).replace("\n", "<br>")
-        self.body.setHtml("<b>%s</b><hr>%s" % (safe_title, safe_body))
+        body_html = render_report_html(self._body_text,
+                                       include_previews=include_previews)
+        self.body.setHtml("<b>%s</b><hr>%s" % (safe_title, body_html))
         self.body.setObjectName("entryBody")
         self.body.setMinimumHeight(120)
         self.body.setVisible(False)
@@ -933,6 +987,11 @@ class SettingsDialog(QDialog):
                                "preview; Cancel restores the old one.")
         self.fields["UI_THEME"] = theme_combo
         aform.addRow("Theme:", theme_combo)
+        self._add_check(aform, "FEED_LINK_PREVIEWS",
+                        "Show link previews in reports",
+                        "Under every hyperlink in the Latest Report and Report "
+                        "Feed, add a small line naming the site it opens. Links "
+                        "are always clickable; this only adds the preview text.")
         # live preview: apply instantly (no persist); Cancel restores on reject
         self._theme_at_open = cur_theme if idx >= 0 else DEFAULT_THEME
         theme_combo.currentIndexChanged.connect(
@@ -2080,7 +2139,8 @@ class SentinelWindow(QMainWindow):
         rbar.addWidget(save_btn)
         rlay.addLayout(rbar)
 
-        self.reply_box = QTextEdit(readOnly=True)
+        self.reply_box = QTextBrowser(readOnly=True)
+        self.reply_box.setOpenExternalLinks(True)
         self.reply_box.setLineWrapMode(QTextEdit.WidgetWidth)
         self.reply_box.setObjectName("replyBox")
         self.reply_box.setPlaceholderText(
@@ -2401,7 +2461,12 @@ class SentinelWindow(QMainWindow):
     def _set_report(self, msg):
         if self._shutting_down:
             return
-        self.reply_box.setPlainText(msg or "")
+        # keep the raw text for Copy/Save (rendered links are display-truncated);
+        # show clickable HTML in the box.
+        self._latest_report_text = msg or ""
+        previews = self.get_setting("FEED_LINK_PREVIEWS", int) == 1
+        self.reply_box.setHtml(render_report_html(self._latest_report_text,
+                                                  include_previews=previews))
 
     def thread_safe_log(self, msg):
         """Safe from worker threads."""
@@ -2413,7 +2478,7 @@ class SentinelWindow(QMainWindow):
             self.sig_report.emit(str(msg))
 
     def copy_latest_report(self):
-        text = self.reply_box.toPlainText().strip()
+        text = getattr(self, "_latest_report_text", "").strip()
         if not text:
             self.statusBar().showMessage("No report to copy yet.", 3000)
             return
@@ -2421,7 +2486,7 @@ class SentinelWindow(QMainWindow):
         self.statusBar().showMessage("Latest report copied to clipboard.", 3000)
 
     def save_latest_report(self):
-        text = self.reply_box.toPlainText()
+        text = getattr(self, "_latest_report_text", "")
         if not text:
             self.statusBar().showMessage("No report to save yet.", 3000)
             return
@@ -2598,8 +2663,26 @@ class SentinelWindow(QMainWindow):
                 act.setIcon(_make_icon(kind))
             except Exception:
                 pass
+        # report links are coloured with the accent too -> re-render them
+        self._refresh_report_rendering()
         if persist:
             self.save_app_state()
+
+    def _refresh_report_rendering(self):
+        """Re-render latest report + feed entries (theme accent / preview toggle)."""
+        try:
+            previews = self.get_setting("FEED_LINK_PREVIEWS", int) == 1
+            latest = getattr(self, "_latest_report_text", "")
+            if latest:
+                self.reply_box.setHtml(render_report_html(
+                    latest, include_previews=previews))
+            for entry in getattr(self, "feed_entries", []):
+                entry.body.setHtml("<b>%s</b><hr>%s" % (
+                    html.escape(entry.cap.text()),
+                    render_report_html(entry._body_text,
+                                       include_previews=previews)))
+        except Exception:
+            pass
 
     def apply_settings(self):
         """Push settings dict into timers / labels. Called after any change."""
@@ -2763,7 +2846,9 @@ class SentinelWindow(QMainWindow):
             return
         try:
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            entry = FeedEntry(timestamp, text[:FEED_BODY_CHARS])
+            entry = FeedEntry(timestamp, text[:FEED_BODY_CHARS],
+                              include_previews=(self.get_setting(
+                                  "FEED_LINK_PREVIEWS", int) == 1))
             idx = self.history_layout.count() - 1   # insert before trailing stretch
             self.history_layout.insertWidget(max(0, idx), entry)
             self.feed_entries.append(entry)
@@ -3220,6 +3305,7 @@ class SentinelWindow(QMainWindow):
     # ================================================================== #
 
     def call_llm(self, prompt, max_tokens):
+        self._llm_truncated_last_call = False
         provider = self.get_setting("LLM_PROVIDER")
         base_url = self.get_setting("LLM_BASE_URL").rstrip("/")
         model = self.get_setting("LLM_MODEL")
@@ -3252,14 +3338,46 @@ class SentinelWindow(QMainWindow):
                 return None
             data = resp.json()
             try:
-                return data["choices"][0]["message"]["content"]
+                choice = data["choices"][0]
+                message = choice["message"]
             except (KeyError, IndexError, TypeError):
                 self.thread_safe_log("LLM reply had unexpected shape: %s"
                                      % str(data)[:300])
                 return None
+            content = message.get("content") or ""
+            if choice.get("finish_reason") == "length":
+                # Output cap hit mid-generation. The report is kept, truncated
+                # to the configured limit — that IS the intended ceiling.
+                self._llm_truncated_last_call = True
+                if not content.strip():
+                    # Some thinking-model servers (LM Studio + Qwen-class chat
+                    # templates) return an EMPTY content when cut off inside
+                    # the reasoning block. Salvage whatever partial text the
+                    # server exposed on the message instead of losing the
+                    # whole report to a cap that is meant to be a soft limit.
+                    for key in ("reasoning_content", "reasoning"):
+                        partial = message.get(key)
+                        if isinstance(partial, str) and partial.strip():
+                            content = partial
+                            break
+            return content
         except Exception as exc:
             self.thread_safe_log("LLM call failed: %s" % exc)
             return None
+
+    def request_report(self, prompt, max_tokens, kind="report"):
+        """call_llm + a user-visible note when the output cap truncated it.
+
+        A truncated report is still published (truncation IS the limit); the
+        log line tells the user why it may end mid-sentence."""
+        reply = self.call_llm(prompt, max_tokens)
+        if getattr(self, "_llm_truncated_last_call", False):
+            note = ("NOTE: %s hit the configured max output length (%d tokens) "
+                    "and was truncated." % (kind, int(max_tokens)))
+            self.thread_safe_log(note)
+            if isinstance(reply, str) and reply.strip():
+                reply = reply.rstrip() + ("\n\n[%s]" % note)
+        return reply
 
     @staticmethod
     def _clean_summary(entry):
@@ -3451,7 +3569,8 @@ class SentinelWindow(QMainWindow):
                     "TOPICS": self.get_topics_string(),
                     "LONG_TERM_MEMORY": lt_mem,
                 })
-                reply = self.call_llm(prompt, self.get_setting("MAX_OUTPUT_TOKENS", int))
+                reply = self.request_report(
+                    prompt, self.get_setting("MAX_OUTPUT_TOKENS", int), kind="alert")
                 if reply and not self.is_no_alert_response(reply):
                     hits += 1
                     self.publish_output(reply, "ALERT")
@@ -3484,10 +3603,18 @@ class SentinelWindow(QMainWindow):
                 "TOPICS": self.get_topics_string(),
                 "LONG_TERM_MEMORY": self.load_long_term_memory(),
             })
-            reply = self.call_llm(prompt, self.get_setting("MAX_OUTPUT_TOKENS_BULK", int))
+            reply = self.request_report(
+                prompt, self.get_setting("MAX_OUTPUT_TOKENS_BULK", int), kind="summary")
             if reply:
                 self.publish_output(reply, "SUMMARY", add_to_memory=True)
                 open(ROLLING_FILE, "w", encoding="utf-8").close()
+            else:
+                # No text at all (server error, or cut off inside a reasoning
+                # block with nothing salvageable). Keep the data: it is still
+                # in the rolling file and survives for the next attempt.
+                self.thread_safe_log("Summary produced no text; rolling file kept "
+                                     "\u2014 raise 'Bulk report length' in Settings > "
+                                     "Limits if this repeats, then press Analyze Now.")
             self.rolling_file_start_time = now
             self.next_bulk_ts = now + window
         except Exception as exc:
@@ -3531,7 +3658,11 @@ class SentinelWindow(QMainWindow):
         return ui
 
     def _sanitize_report_dir(self, path_str):
-        """A report dir saved on another OS is meaningless here; fall back."""
+        """A report dir saved on another OS is meaningless here; fall back.
+
+        Also rejects temp-dir paths (/tmp, %TEMP%): those are leftovers from
+        test runs that shared an app_state.json, never a user's real choice —
+        reports belong in the Report_Output folder."""
         path_str = (path_str or "").strip()
         if not path_str:
             return DEFAULT_REPORT_OUTPUT_DIR
@@ -3540,6 +3671,16 @@ class SentinelWindow(QMainWindow):
             return DEFAULT_REPORT_OUTPUT_DIR
         if os.name == "nt" and path_str.startswith("/") and not looks_windows:
             return DEFAULT_REPORT_OUTPUT_DIR
+        temp_roots = ["/tmp", "/var/tmp"]
+        for var in ("TEMP", "TMP", "LOCALAPPDATA"):
+            v = os.environ.get(var, "")
+            if v:
+                temp_roots.append(v)
+        norm = os.path.normpath(path_str)
+        for root in temp_roots:
+            root_n = os.path.normpath(root)
+            if norm == root_n or norm.startswith(root_n + os.sep):
+                return DEFAULT_REPORT_OUTPUT_DIR
         return path_str
 
     @staticmethod

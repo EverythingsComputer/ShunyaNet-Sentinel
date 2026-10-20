@@ -29,6 +29,9 @@ disk and refreshes an index file. Read the index, open new reports, act.
 ## Rules
 
 - Read-only. Never write or delete Sentinel's files; Sentinel owns them.
+- A report ending with `[NOTE: ... hit the configured max output length ...]`
+  was cut off at that limit — the content before the marker is valid, just
+  possibly mid-sentence. Mention the truncation when relaying the report.
 - `Memory_Long_Term.txt` (path in the handoff JSON) is Sentinel's rolling
   situation picture — useful context, but it can be stale: never treat it as
   current news.

@@ -78,9 +78,6 @@ You are the scheduled summary-report layer for an automated monitoring system.
 MONITORING SCOPE
 {TOPICS}
 
-REPORTING-WINDOW INPUT
-{CHUNK}
-
 PURPOSE
 Produce one decision-useful report covering relevant developments collected during the reporting window. Capture important information even when it did not meet the immediate-alert threshold. Synthesize duplicate and related items into coherent developments rather than listing feeds one by one.
 
@@ -130,6 +127,9 @@ RULES
 - Do not force a trend from unrelated events.
 - Include relevant lower-intensity developments even when they are not urgent.
 - Omit empty sections only when the required fallback text is not specified.
+
+REPORTING-WINDOW INPUT
+{CHUNK}
 
 #> MEMORY
 

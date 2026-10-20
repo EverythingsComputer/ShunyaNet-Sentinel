@@ -12,6 +12,7 @@ requests available (or `venv-linux/bin/python` on Linux):
     python3 tests/cli_run.py tests/smoke.py      # boot, dialogs, wizard, close
     python3 tests/cli_run.py tests/e2e.py        # full alert->notify->summary->memory pipeline
     python3 tests/cli_run.py tests/restart.py    # persistence + legacy-state migration
+    python3 tests/cli_run.py tests/limits_render.py  # truncation salvage + link rendering
 
 Each prints `... ALL PASS` / `... OK` and exits 0 on success. The scratch dir
 path is printed for inspection afterwards.
