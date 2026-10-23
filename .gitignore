@@ -39,3 +39,6 @@ packaging/icons/
 # Personal scratch / superseded files kept locally, never published
 _local-scratch/
 Previous-Versions-local/
+
+# Local pause/handoff notes (not for the public repo)
+HANDOFF.md
