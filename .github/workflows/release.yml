@@ -198,10 +198,19 @@ jobs:
               rc=127
             elif [ "$RUNNER_OS" = "Windows" ]; then
               # A GUI-subsystem exe has to be awaited explicitly and killed if it
-              # never returns - Start-Process does both.
+              # never returns, and its console output only exists if redirected.
+              # Paths must be converted: a POSIX path handed to a native Windows
+              # process points nowhere, so the report would silently go missing.
               WIN_BIN=$(cygpath -w "$BIN")
-              powershell -NoProfile -Command "\$p = Start-Process -FilePath '$WIN_BIN' -ArgumentList '--smoke-test' -PassThru; if (-not \$p.WaitForExit($((SMOKE_LIMIT * 1000)))) { \$p.Kill(); Write-Output 'KILLED after ${SMOKE_LIMIT}s'; exit 2 }; exit \$p.ExitCode"
-              rc=$?
+              WIN_HOME=$(cygpath -w "$SENTINEL_HOME")
+              WIN_SMOKE=$(cygpath -w "$SENTINEL_SMOKE_FILE")
+              WIN_OUT=$(cygpath -w "$RUNNER_TEMP/smoke-stdout.log")
+              WIN_ERR=$(cygpath -w "$RUNNER_TEMP/smoke-stderr.log")
+              OUT_LOG="$RUNNER_TEMP/smoke-stdout.log"
+              ERR_LOG="$RUNNER_TEMP/smoke-stderr.log"
+              powershell -NoProfile -Command "\$env:SENTINEL_HOME='$WIN_HOME'; \$env:SENTINEL_SMOKE_FILE='$WIN_SMOKE'; \$p = Start-Process -FilePath '$WIN_BIN' -ArgumentList '--smoke-test' -PassThru -WindowStyle Hidden -RedirectStandardOutput '$WIN_OUT' -RedirectStandardError '$WIN_ERR'; if (-not \$p.WaitForExit($((SMOKE_LIMIT * 1000)))) { \$p.Kill(); Write-Output 'KILLED after ${SMOKE_LIMIT}s'; exit 2 }; exit \$p.ExitCode" 2> /dev/null || rc=$?
+              [ -f "$OUT_LOG" ] && { echo "--- exe stdout ---"; cat "$OUT_LOG"; }
+              [ -f "$ERR_LOG" ] && { echo "--- exe stderr ---"; cat "$ERR_LOG"; }
             else
               "$BIN" --smoke-test >/dev/null 2>&1 &
               pid=$!
@@ -209,6 +218,7 @@ jobs:
               watcher=$!
               wait "$pid"; rc=$?
               kill "$watcher" 2>/dev/null
+              wait "$watcher" 2>/dev/null
             fi
             echo "--- smoke exit: $rc ---"
             if [ -f "$SENTINEL_SMOKE_FILE" ]; then cat "$SENTINEL_SMOKE_FILE"; else echo "NO SMOKE FILE WRITTEN"; fi
@@ -218,6 +228,9 @@ jobs:
           # exit status is handed over through a file
           rc=$(cat "$RCF" 2>/dev/null || echo 99)
           if [ "$rc" -ne 0 ] || ! grep -q "SMOKE OK" "$SENTINEL_SMOKE_FILE" 2>/dev/null; then
+            # the app writes a copy next to itself when it cannot reach the path it
+            # was given - show that too rather than losing the diagnosis
+            find dist -maxdepth 4 -name "sentinel_smoke.txt" -exec sh -c 'echo "--- $1 ---"; cat "$1"' _ {} \; 2>/dev/null || true
             echo "::error::SMOKE_FAILED on $PLATFORM (exit $rc) - build-log.txt is attached to the release"
             exit 1
           fi
@@ -241,10 +254,16 @@ jobs:
             else
               (cd dist && zip -qry "../$out.zip" "$APP_NAME")
             fi
+            # macOS ships shasum, not sha256sum; Windows git-bash has sha256sum and
+            # certutil. All three must produce the same "<hash>  <file>" format so a
+            # user can verify with `sha256sum -c` on any platform.
             if command -v sha256sum >/dev/null 2>&1; then
               sha256sum "$out.zip" > "$out.zip.sha256"
+            elif command -v shasum >/dev/null 2>&1; then
+              shasum -a 256 "$out.zip" > "$out.zip.sha256"
             else
-              certutil -hashfile "$out.zip" SHA256 | head -3 > "$out.zip.sha256"
+              certutil -hashfile "$out.zip" SHA256 | sed -n '2p' \
+                | awk -v f="$out.zip" '{print $1 "  " f}' > "$out.zip.sha256"
             fi
             ls -la "$out.zip" "$out.zip.sha256"
             echo "sha256: $(cut -d' ' -f1 "$out.zip.sha256" 2>/dev/null || true)"

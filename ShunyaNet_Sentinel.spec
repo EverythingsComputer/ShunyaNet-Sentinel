@@ -110,7 +110,10 @@ exe = EXE(
     strip=_strip_flag(),
     upx=False,                      # UPX packing breaks macOS code sealing
     console=False,                  # windowed app; --smoke-test writes SENTINEL_SMOKE_FILE
-    disable_windowed_traceback=False,
+    # A windowed build normally reports a startup exception with a MODAL dialog -
+    # invisible headless on CI, where it just hangs until the job times out. Send
+    # it to stderr instead (the workflow redirects that into its build log).
+    disable_windowed_traceback=True,
     icon=icon_win if sys.platform == "win32" else icon_mac,
 )
 

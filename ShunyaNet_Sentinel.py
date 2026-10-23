@@ -4066,6 +4066,13 @@ def _cli_shortcuts():
     # Progress goes to the smoke file as it happens. A wedged process gets killed
     # from outside, so the partial file is what tells you which phase stopped.
     log_path = os.environ.get("SENTINEL_SMOKE_FILE", "").strip()
+    if log_path and not os.path.isdir(os.path.dirname(os.path.abspath(log_path))):
+        # CI hands us a path we may not be able to reach (a POSIX-looking one from
+        # git-bash, for instance); fall back to beside the program so there is
+        # always some record of how far startup got.
+        alt = os.path.join(os.path.dirname(os.path.abspath(sys.executable if getattr(sys, "frozen", False) else __file__)), "sentinel_smoke.txt")
+        sys.stderr.write("SMOKE: cannot use %s, writing %s\n" % (log_path, alt))
+        log_path = alt
 
     def note(text):
         _emit("[smoke] " + text)
@@ -4158,8 +4165,11 @@ def _cli_shortcuts():
         window._shutting_down = True
         window.close()
         app.processEvents()
-    except Exception as exc:
-        failed.append("boot EXCEPTION %r" % exc)
+    except Exception:
+        import traceback
+        tb = traceback.format_exc()
+        failed.append("boot EXCEPTION\n" + tb)
+        note("EXCEPTION:\n" + tb)
 
     lines = ["SMOKE %s v%s frozen=%s" % (
                 "OK" if not failed else "FAILED", APP_VERSION,
@@ -4168,6 +4178,10 @@ def _cli_shortcuts():
     lines += ["  FAIL " + l for l in failed]
     text = "\n".join(lines)
     _emit(text)
+    if not log_path:
+        log_path = os.path.join(os.path.dirname(os.path.abspath(
+            sys.executable if getattr(sys, "frozen", False) else __file__)),
+            "sentinel_smoke.txt")
     if log_path:
         try:
             with open(log_path, "a", encoding="utf-8") as fh:
