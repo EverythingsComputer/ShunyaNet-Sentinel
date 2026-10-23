@@ -20,7 +20,8 @@ def make_scratch(seed=None):
         else:
             shutil.copy2(s, t)
     for junk in ("app_state.json", ".sentinel_first_run", "rolling_rss.txt",
-                 "Memory_Long_Term.txt", "Memory_Short_Term.txt"):
+                 "Memory_Long_Term.txt", "Memory_Short_Term.txt",
+                 "topic_profiles.json"):
         p = os.path.join(d, junk)
         if os.path.exists(p):
             os.remove(p)

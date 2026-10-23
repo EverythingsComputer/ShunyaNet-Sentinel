@@ -1,0 +1,58 @@
+# Geopolitics & Conflict - Sentinel data source list
+# One URL per line. Lines starting with # are comments.
+# Pair with topic profile "Geopolitics & Conflict V1".
+
+# Escalation signals (Google News saved searches)
+https://news.google.com/rss/search?q=%22military+escalation%22+OR+%22armed+conflict%22&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22ballistic+missile%22+OR+airstrike+OR+airstrike&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22airspace+closure%22+OR+%22flight+reroute%22+aviation&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22internet+outage%22+OR+%22network+shutdown%22+censorship&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22power+grid%22+attack+OR+disruption+infrastructure&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22state+of+emergency%22+declared&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=martial+law+OR+%22coup+d%27etat%22&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22border+closure%22+OR+%22military+mobilization%22&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22travel+advisory%22+embassy+evacuation&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=sanctions+announced+treatment&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22nuclear+facility%22+IAEA+inspection&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22strait+of+hormuz%22+OR+%22red+sea%22+shipping+attack&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22south+china+sea%22+OR+taiwan+strait+tension&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=Ukraine+front+line+Russian+advance&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=Israel+Gaza+Hezbollah+operations&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=Sudan+OR+Ethiopia+OR+Somalia+conflict&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=Myanmar+civil+war+OR+Sahel+junta&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22election+interference%22+OR+%22disinformation+campaign%22&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22NATO%22+article+fourth+OR+article+fifth&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22UN+Security+Council%22+emergency+session&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22cyber+attack%22+government+election+infrastructure&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22assassination%22+OR+%22political+violence%22+candidate&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22refugee+crisis%22+OR+%22mass+displacement%22&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22chemical+weapon%22+OR+%22bioweapon%22+allegation&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22emergency+alert%22+sirens+missile+warning&hl=en-US&gl=US&ceid=US:en
+
+# Wires, analysis shops, official sources
+https://feeds.bbci.co.uk/news/world/rss.xml
+https://rss.nytimes.com/services/xml/rss/nyt/World.xml
+https://www.theguardian.com/world/rss
+https://www.france24.com/en/middle-east/rss
+https://www.aljazeera.com/xml/rss/all.xml
+https://www.euronews.com/rss?level=theme&name=news
+https://www.crisisgroup.org/rss/87
+https://www.crisisgroup.org/rss/91
+https://www.crisisgroup.org/rss/85
+https://www.war.gov/DesktopModules/ArticleCS/RSS.ashx?max=10&ContentType=1&Site=945
+https://www.war.gov/DesktopModules/ArticleCS/RSS.ashx?ContentType=2&Site=945&max=10
+https://tass.com/rss/v2.xml
+https://www.themoscowtimes.com/rss/news/
+https://meduza.io/rss/all
+https://rss.nytimes.com/services/xml/rss/nyt/MiddleEast.xml
+https://rss.nytimes.com/services/xml/rss/nyt/Europe.xml
+https://rss.nytimes.com/services/xml/rss/nyt/AsiaPacific.xml
+https://feeds.bbci.co.uk/news/world/middle_east/rss.xml
+https://feeds.bbci.co.uk/news/world/europe/rss.xml
+https://www.jpost.com//rss/rssallnews
+https://en.mehrnews.com/rss
+https://www.reddit.com/r/geopolitics/new/.rss
+https://feeds.bbci.co.uk/news/world/asia/rss.xml
+https://news.google.com/rss/search?q=site:reuters.com+conflict&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22military+buildup%22+OR+%22troop+deployment%22&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22ceasefire%22+OR+%22peace+talks%22+collapse&hl=en-US&gl=US&ceid=US:en

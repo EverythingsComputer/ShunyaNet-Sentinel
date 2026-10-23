@@ -8,15 +8,8 @@ https://www.newswise.com/legacy/feed/channels.php?channel=60
 https://www.newswise.com/legacy/feed/channels.php?channel=50
 https://www.newswise.com/legacy/feed/channels.php?channel=134
 https://www.lemonde.fr/en/rss/une.xml
-https://www.fema.gov/news/news_region-x.rss
-https://www.fema.gov/news/news_region-ix.rss
-https://www.fema.gov/news/news_region-iii.rss
-https://www.fema.gov/news/news_region-ii.rss
-https://www.faasafety.gov/RSS/NoticesRSS.aspx
 https://www.faasafety.gov/RSS/NewsRSS.aspx
 https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml
-https://gdacs.org/xml/rss.xml
-https://feedx.net/rss/ap.xml
 https://feeds.nbcnews.com/nbcnews/public/news
 https://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml
 https://feeds.bbci.co.uk/news/world/latin_america/rss.xml
@@ -34,3 +27,7 @@ http://rss.cnn.com/rss/cnn_us.rss
 http://rss.cnn.com/rss/cnn_topstories.rss
 
 http://feeds.bbci.co.uk/news/rss.xml
+
+https://www.cbsnews.com/latest/rss/main
+https://feeds.npr.org/1001/rss.xml
+https://feeds.npr.org/1004/rss.xml

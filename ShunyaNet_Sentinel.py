@@ -62,7 +62,7 @@ import threading
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 
-APP_VERSION = "3.2.0"
+APP_VERSION = "3.3.0"
 
 import requests
 import feedparser
@@ -140,6 +140,24 @@ MAX_TOPICS = 10
 MAX_PROFILES = 20
 ROLLING_FILE = os.path.join(APP_DIR, "rolling_rss.txt")
 PROFILE_FILE = os.path.join(APP_DIR, "topic_profiles.json")
+# Shipped with the app: read-only defaults, copied to PROFILE_FILE on first run
+# and re-mergeable any time from Profiles -> Restore Bundled Topic Profiles.
+BUNDLED_PROFILES_FILE = os.path.join(APP_DIR, "topic_profiles.default.json")
+
+# (menu label, filename inside 'Data Sources/') for the File menu submenu
+BUNDLED_SOURCE_LISTS = [
+    ("Quick-Start List (short test list)", "Default_test-v1.txt"),
+    ("World News (long list)", "Default_long-v1.txt"),
+    ("AI & Technology", "AI_Technology_V1.txt"),
+    ("Cybersecurity", "Cybersecurity_V1.txt"),
+    ("Finance & Markets", "Finance_Markets_V1.txt"),
+    ("Climate & Disasters", "Climate_Disasters_V1.txt"),
+    ("Health & Outbreaks", "Health_Outbreaks_V1.txt"),
+    ("Geopolitics & Conflict", "Geopolitics_Conflict_V1.txt"),
+    ("EXAMPLE - India Regional", "India_regional_example-v1.txt"),
+    ("EXAMPLE - Iran Conflict", "Iran_List_V1.txt"),
+    ("EXAMPLE - Irkutsk Plague Monitor", "Irkutsk_plague_V1.txt"),
+]
 SLACK_WEBHOOK_URL = ""
 STATE_FILE = os.path.join(APP_DIR, "app_state.json")
 SENTINEL_FILE = os.path.join(APP_DIR, ".sentinel_first_run")
@@ -2141,12 +2159,6 @@ class SentinelWindow(QMainWindow):
                                  icon=_make_icon("settings"), themed="settings")
 
         self.act_sources = make("Load Data Sources\u2026", self.load_data_sources, "Ctrl+O")
-        self.act_quickstart_sources = make(
-            "Quick-Start Sources (short test list)",
-            lambda: self.load_bundled_sources("Default_test-v1.txt"))
-        self.act_long_sources = make(
-            "World News Sources (long list)",
-            lambda: self.load_bundled_sources("Default_long-v1.txt"))
         self.act_prompt = make("Load Prompt File\u2026", self.load_prompt_file)
         self.act_open_reports = make("Open Report Folder", self.open_report_folder)
         self.act_quit = make("Quit", self.close, QKeySequence.Quit)
@@ -2154,6 +2166,8 @@ class SentinelWindow(QMainWindow):
         self.act_new_profile = make("Save Profile As\u2026", self.save_current_profile, "Ctrl+Shift+S")
         self.act_load_profile = make("Load Selected Profile", self.load_selected_profile)
         self.act_del_profile = make("Delete Selected Profile", self.delete_selected_profile)
+        self.act_restore_profiles = make("Restore Bundled Topic Profiles\u2026",
+                                         self.restore_bundled_profiles)
 
         self.act_copy_report = make("Copy Latest Report", self.copy_latest_report, "Ctrl+Shift+C")
         self.act_clear_log = make("Clear Terminal Log", lambda: self.log.clear(), "Ctrl+K")
@@ -2435,8 +2449,9 @@ class SentinelWindow(QMainWindow):
         m_file = mb.addMenu("&File")
         m_file.addAction(self.act_sources)
         src_menu = m_file.addMenu("Bundled Source Lists")
-        src_menu.addAction(self.act_quickstart_sources)
-        src_menu.addAction(self.act_long_sources)
+        for _label, _fname in BUNDLED_SOURCE_LISTS:
+            src_menu.addAction(_label,
+                               lambda checked=False, f=_fname: self.load_bundled_sources(f))
         m_file.addSeparator()
         m_file.addAction(self.act_prompt)
         m_file.addSeparator()
@@ -2455,6 +2470,8 @@ class SentinelWindow(QMainWindow):
         m_profiles.addAction(self.act_new_profile)
         m_profiles.addAction(self.act_load_profile)
         m_profiles.addAction(self.act_del_profile)
+        m_profiles.addSeparator()
+        m_profiles.addAction(self.act_restore_profiles)
 
         self.m_view = mb.addMenu("&View")
         self.m_view.addAction(self.act_rain)
@@ -2990,9 +3007,57 @@ class SentinelWindow(QMainWindow):
             if os.path.exists(PROFILE_FILE):
                 with open(PROFILE_FILE, "r", encoding="utf-8") as fh:
                     self.profiles = json.load(fh)
+            else:
+                # First run (or the file was deleted): start from the shipped
+                # defaults so the profile dropdown is never empty.
+                self.profiles = {}
+                bundled = self._read_bundled_profiles()
+                if bundled:
+                    self.profiles = bundled
+                    self.save_profiles()
+                    self.thread_safe_log("Seeded %d bundled topic profiles."
+                                         % len(bundled))
         except Exception as exc:
             self.profiles = {}
             self.thread_safe_log("Profile load failed: %s" % exc)
+
+    def _read_bundled_profiles(self):
+        """The read-only topic_profiles.default.json shipped with the app."""
+        try:
+            if not os.path.exists(BUNDLED_PROFILES_FILE):
+                return {}
+            with open(BUNDLED_PROFILES_FILE, "r", encoding="utf-8") as fh:
+                data = json.load(fh)
+            return data if isinstance(data, dict) else {}
+        except Exception as exc:
+            self.thread_safe_log("Bundled profile read failed: %s" % exc)
+            return {}
+
+    def restore_bundled_profiles(self):
+        """Merge in any shipped default profiles the user does not already have.
+        Never overwrites a profile of the same name."""
+        bundled = self._read_bundled_profiles()
+        if not bundled:
+            QMessageBox.information(
+                self, "Nothing to restore",
+                "No bundled topic profile file was found next to the program:\n%s"
+                % BUNDLED_PROFILES_FILE)
+            return
+        room = max(0, MAX_PROFILES - len(self.profiles))
+        missing = [(n, p) for n, p in bundled.items() if n not in self.profiles]
+        added = 0
+        for name, prof in missing[:room]:
+            self.profiles[name] = prof
+            added += 1
+        if added:
+            self.save_profiles()
+            self.update_profile_combobox()
+            self.profile_select.setCurrentText(missing[added - 1][0])
+        msg = "%d bundled profile(s) restored." % added
+        if missing and added < len(missing):
+            msg += " (%d skipped: profile limit of %d reached)" % (
+                len(missing) - added, MAX_PROFILES)
+        self.statusBar().showMessage(msg, 6000)
 
     def save_profiles(self):
         try:

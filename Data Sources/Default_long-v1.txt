@@ -27,10 +27,7 @@ https://bsky.app/profile/avindman.bsky.social/rss
 https://bsky.app/profile/govpritzker.illinois.gov/rss
 https://www.reddit.com/r/myanmar/new/.rss
 https://www.reddit.com/r/europe/new/.rss
-https://www.faasafety.gov/RSS/NoticesRSS.aspx
-https://www.fema.gov/news/news_region-ix.rss
 https://www.reddit.com/r/politics/new/.rss
-https://www.fema.gov/news/news_region-ii.rss
 https://www.reddit.com/r/Africa/new/.rss
 https://feeds.bbci.co.uk/news/world/latin_america/rss.xml
 https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml
@@ -50,14 +47,12 @@ https://www.newswise.com/legacy/feed/channels.php?channel=6402
 https://feeds.bbci.co.uk/news/world/europe/rss.xml
 https://www.faasafety.gov/RSS/NewsRSS.aspx
 https://bsky.app/profile/youranoncentral.bsky.social/rss
-https://feedx.net/rss/ap.xml
 https://bsky.app/profile/japantimes.co.jp/rss
 https://feeds.bbci.co.uk/news/world/africa/rss.xml
 https://bsky.app/profile/theintercept.com/rss
 https://bsky.app/profile/nycsouthpaw.bsky.social/rss
 https://www.reddit.com/r/UkraineWarVideoReport/new/.rss
 https://www.reddit.com/r/NorthKoreaNews/new/.rss
-https://gdacs.org/xml/rss.xml
 https://www.reddit.com/r/vzla/new/.rss
 https://www.lemonde.fr/en/rss/une.xml
 https://bsky.app/profile/govmlg.bsky.social/rss
@@ -68,12 +63,10 @@ https://bsky.app/profile/reuters.com/rss
 https://bsky.app/profile/ncgovernor.bsky.social/rss
 https://www.reddit.com/r/southafrica/new/.rss
 https://www.reddit.com/r/Guyana/new/.rss
-https://bsky.app/profile/zohrankmamdani.bsky.social/rss
 https://bsky.app/profile/bnonews.com/rss
 https://bsky.app/profile/colorado.gov/rss
 https://www.reddit.com/r/brasil/new/.rss
 https://www.reddit.com/r/mexico/new/.rss
-https://www.fema.gov/news/news_region-iii.rss
 https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.atom
 https://www.newswise.com/legacy/feed/channels.php?channel=6561
 https://bsky.app/profile/massgovernor.bsky.social/rss
@@ -111,7 +104,6 @@ https://bsky.app/profile/govevers.wisconsin.gov/rss
 https://bsky.app/profile/hakeem-jeffries.bsky.social/rss
 https://feeds.nbcnews.com/nbcnews/public/news
 https://bsky.app/profile/governor.pa.gov/rss
-https://www.fema.gov/news/news_region-x.rss
 https://www.reddit.com/r/argentina/new/.rss
 https://www.reddit.com/r/afghanistan/new/.rss
 https://bsky.app/profile/euronews.com/rss
@@ -127,3 +119,10 @@ http://rss.cnn.com/rss/cnn_topstories.rss
 https://bsky.app/profile/warren.senate.gov/rss
 https://www.reddit.com/r/cuba/new/.rss
 https://bsky.app/profile/apnews.com/rss
+
+https://www.aljazeera.com/xml/rss/all.xml
+https://feeds.npr.org/1001/rss.xml
+https://feeds.npr.org/1004/rss.xml
+https://www.cbsnews.com/latest/rss/main
+https://news.google.com/rss/search?q=%22breaking+news%22+OR+%22just+in%22&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=emergency+declaration+OR+evacuation+order&hl=en-US&gl=US&ceid=US:en

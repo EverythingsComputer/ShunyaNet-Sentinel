@@ -1,0 +1,58 @@
+# Health & Disease Outbreaks - Sentinel data source list
+# One URL per line. Lines starting with # are comments.
+# Pair with topic profile "Health & Outbreaks V1".
+
+# Outbreak / epidemic signals (Google News saved searches)
+https://news.google.com/rss/search?q=%22disease+outbreak%22+OR+epidemic+OR+pandemic&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22new+variant%22+coronavirus+OR+influenza&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=hantavirus+outbreak&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=cholera+outbreak&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=measles+outbreak+vaccination&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=mpox+monkeypox&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=avian+influenza+%22bird+flu%22+h5n1&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=ebola+outbreak&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22norovirus%22+outbreak+food&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=malaria+OR+dengue+OR+zika+outbreak&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22antibiotic+resistance%22+superbug&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22public+health+emergency%22&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=hospital+capacity+%22emergency+department%22+crisis&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=FDA+recall+contaminated+drug&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22drug+shortage%22+hospital&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=vaccine+safety+trial+approval&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22CDC%22+health+alert+advisory&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22WHO%22+disease+outbreak+statement&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=laboratory+biosafety+leak+incident&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=water+contamination+lead+health+alert&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=food+safety+recall+E.+coli+salmonella&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=heat+illness+hospitalization+extreme+heat&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=air+quality+wildfire+smoke+health&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=cancer+cluster+environmental+investigation&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=mental+health+crisis+suicide+prevention&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=fentanyl+overdose+supply+contamination&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22medical+marijuana%22+OR+cannabis+regulation&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=AI+diagnosis+medical+breakthrough&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=gene+therapy+CRISPR+clinical+trial&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=GLP-1+weight+loss+drug+safety&hl=en-US&gl=US&ceid=US:en
+
+# Research / science wires and health newsrooms
+https://www.newswise.com/legacy/feed/channels.php?channel=6561
+https://www.newswise.com/legacy/feed/channels.php?channel=6402
+https://www.newswise.com/legacy/feed/channels.php?channel=6238
+https://www.newswise.com/legacy/feed/channels.php?channel=60
+https://www.newswise.com/legacy/feed/channels.php?channel=50
+https://www.newswise.com/legacy/feed/channels.php?channel=134
+https://outbreaknewstoday.com/feed/
+https://feeds.bbci.co.uk/news/health/rss.xml
+https://rss.nytimes.com/services/xml/rss/nyt/Health.xml
+https://www.theguardian.com/society/health/rss
+https://www.statnews.com/feed/
+https://www.sciencedaily.com/rss/top/health.xml
+https://feeds.npr.org/1128/rss.xml
+https://www.cidrap.umn.edu/rss.xml
+https://news.google.com/rss/search?q=%22public+health%22+emergency+preparedness&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=hospital+%22surge+capacity%22+OR+%22code+delta%22&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=patient+safety+hospital+error+report&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22life+expectancy%22+OR+%22mortality+rate%22+study&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=antibiotic+shortage+hospital+pharmacy&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22clinical+trial%22+results+cancer+treatment&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=site:apnews.com+OR+site:aljazeera.com+outbreak&hl=en-US&gl=US&ceid=US:en

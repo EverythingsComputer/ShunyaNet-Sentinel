@@ -1,6 +1,6 @@
 <img width="1642" height="946" alt="ShunyaNetSentinelAppGraphicV1" src="https://github.com/user-attachments/assets/f1348720-4d36-4bfa-b8d6-ea92bdfd0a9f" />
 
-# ShunyaNet Sentinel (v3.2) - MAJOR UPDATE (UPDATED: 10/20/2026)
+# ShunyaNet Sentinel (v3.3) - MAJOR UPDATE (UPDATED: 10/22/2026)
 
 ShunyaNet Sentinel is a lightweight, cyberpunk-themed program that ingests RSS feeds (breaking news, social media, government alerts), sends them to an LLM for analysis, and delivers alerts and summary reports to the GUI and your notification channels at regular intervals.
 
@@ -103,13 +103,13 @@ On first launch, Sentinel walks you through setup with a guided **Setup Wizard**
 
 1. **Topics** – your overall topic and signals (one per line). Autosaves as you type.
 2. **Model connection** – pick your provider (LM Studio and other local servers live under "OpenAI-compatible"; hosted picks include OpenAI, Claude, Gemini, OpenRouter, Groq, Mistral, DeepSeek, Together, Grok); the wizard shows exactly what to enter, with a **Test Connection** button so you know it works before relying on it.
-3. **Feeds** – one click loads the bundled Quick-Start (short) or World News (long) list.
+3. **Feeds** – one click loads a bundled list: Quick-Start (short), World News (long), or a topic list (AI & Technology, Cybersecurity, Finance & Markets, Climate & Disasters, Health & Outbreaks, Geopolitics & Conflict).
 4. **Confirm** – review and launch your first fetch (the button actually fetches).
 
 Manual setup (skipping the wizard):
 
 1. Enter topics in the Targeting panel.
-2. File → Bundled Source Lists → Quick-Start List (or load your own `.txt`, one RSS URL per line — your loaded list is remembered across restarts now).
+2. Pick a starting point: **Profiles** → choose a bundled topic profile, and **File → Bundled Source Lists** → pick the matching feed list (or load your own `.txt`, one RSS URL per line — your loaded list is remembered across restarts).
 3. Run → Settings (`Ctrl+,`) → Connection tab: choose provider, set the Server URL (LM Studio example: `http://localhost:1234/v1`), press **Test Connection**, Save & Apply.
 4. Load a model in LM Studio and turn on "Serve on Local Network" in Server Settings. Tips:
     - In the Load Model window, turn on "Manually choose model load parameters"
@@ -128,6 +128,10 @@ Every setting has a hover tooltip; Help (`F2`) lists keyboard shortcuts. Matrix-
 
 1. **Topics** — enter topics in the Targeting panel (autosaves). Save named sets as Profiles to switch watch-lists quickly. Your loaded feed list is part of app state and persists across restarts.
 
+   Sentinel ships with **11 ready-made topic profiles** (`topic_profiles.default.json`) that are installed automatically on first run into your own `topic_profiles.json` — after that the file is yours: edit, delete, add, and your changes are never overwritten. Brought a fresh clone or deleted one you liked? **Profiles → Restore Bundled Topic Profiles…** merges back only the shipped profiles you are missing.
+
+   A profile has two fields, matching the Targeting panel: `overall_topic` (one sentence framing what counts as news) and `subtopics` (newline-separated signal lines — write each as *what to look for*, plus examples in parentheses; specific signals screen far better than broad subject words).
+
 2. **Prompts: one file does it all (`sentinel_prompt.txt`).** It loads automatically and contains marked sections:
    - `#> ALERT` — instructions sent with every fetch (instant alert screening)
    - `#> SUMMARY` — instructions for periodic trend reports
@@ -135,10 +139,23 @@ Every setting has a hover tooltip; Help (`F2`) lists keyboard shortcuts. Matrix-
 
    A prompt file with no `#>` markers is used whole for both modes. File → Load Prompt File swaps files (it reports which sections it detects). Tokens `{TOPICS}`, `{CHUNK}` and `{LONG_TERM_MEMORY}` are filled in at send time. Tweaking the wording can substantially improve signal quality.
 
-3. **Data sources** — "Load Data Sources…" takes a `.txt` with one RSS URL per line (`#` comments allowed) or a JSON list. Bundled lists:
-   - `Default_test-v1.txt` — short, varied; keeps the first pull quick so you can diagnose your setup
-   - `Default_long-v1.txt` — longer world/breaking-news focus
-   - `India_regional_example-v1.txt`, `Iran_List_V1.txt` — region/topic examples
+3. **Data sources** — "Load Data Sources…" takes a `.txt` with one RSS URL per line (`#` comments allowed) or a JSON list. Every bundled list below was live-probed (HTTP 200 + parseable items) when it shipped; pair each with the topic profile of the same name:
+
+| Bundled list | Feeds | Topic profile | Good for |
+|---|---|---|---|
+| `Default_test-v1.txt` | 31 | General News & Breaking V1 | First run: short and varied, so a slow model still finishes quickly |
+| `Default_long-v1.txt` | 127 | World News Deep Dive V1 | Broad global coverage: wires + Reddit + Bluesky |
+| `AI_Technology_V1.txt` | 59 | AI & Technology V1 | Model releases, AI regulation, chips/compute, tech outages |
+| `Cybersecurity_V1.txt` | 56 | Cybersecurity V1 | Breaches, ransomware, exploited CVEs, infrastructure attacks |
+| `Finance_Markets_V1.txt` | 53 | Finance & Markets V1 | Market dislocations, banking/credit stress, policy surprises, crypto |
+| `Climate_Disasters_V1.txt` | 58 | Climate & Disasters V1 | Rapid-onset disasters plus record/climate signals |
+| `Health_Outbreaks_V1.txt` | 51 | Health & Outbreaks V1 | Early outbreak signals, drug shortages/recalls, hospital capacity |
+| `Geopolitics_Conflict_V1.txt` | 51 | Geopolitics & Conflict V1 | Escalation indicators: airspace, missiles, shipping, diplomacy |
+| `India_regional_example-v1.txt` | 64 | India Regional Monitor V1 | Worked example of a country/region build (national + city feeds) |
+| `Iran_List_V1.txt` | 43 | Iran Conflict V2 | Worked example of a single-event build (wires + OSINT + Telegram) |
+| `Irkutsk_plague_V1.txt` | 24 | Irkutsk Plague Monitor (Example) | Worked example of a narrow, event-specific watch |
+
+   Every URL above was live-probed (HTTP 200 + parseable items) at ship time. Two caveats: feeds rot, so delete any line that stops answering; and Reddit aggressively rate-limits (HTTP 429) anything polled in bulk — Sentinel serializes requests per host, but if a list is heavy on Reddit expect some sources to be skipped on a given cycle.
 
    Reddit URLs work by adding `.rss`; Bluesky profiles work as `https://bsky.app/profile/NAME/RSS`. Tools like RSS-Bridge convert sites without feeds (e.g., Telegram). **Randomize your list order** so rate-limiting sites don't get hit in bursts (Sentinel also serializes requests per host automatically).
 
@@ -216,7 +233,7 @@ See [tests/README.md](tests/README.md).
 
 # Status
 
-Beta (v3.2)
+Beta (v3.3)
 
 ------------------------------------------------------------------------
 

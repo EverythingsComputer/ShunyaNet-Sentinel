@@ -24,6 +24,36 @@ win.show()
 app.processEvents()
 print("BOOT OK; feeds:", len(win.feeds))
 
+# --- topic profiles: shipped defaults seeded on a virgin run, in current format ---
+assert os.path.exists(mod.BUNDLED_PROFILES_FILE), "bundled profile file missing"
+assert win.profiles, "virgin install got no topic profiles (seeding broken)"
+for name, prof in win.profiles.items():
+    assert isinstance(prof, dict) and set(prof) >= {"overall_topic", "subtopics"}, \
+        "profile %r not in current {overall_topic, subtopics} format" % name
+    assert prof["overall_topic"].strip() and prof["subtopics"].strip(), name
+assert os.path.exists(mod.PROFILE_FILE), "seeded profiles were never written to disk"
+print("PROFILE SEEDING OK:", len(win.profiles), "profiles")
+
+# every bundled source list referenced by the File menu must ship with the app
+for label, fname in mod.BUNDLED_SOURCE_LISTS:
+    p = os.path.join(mod.APP_DIR, "Data Sources", fname)
+    assert os.path.exists(p), "bundled list missing: %s" % fname
+print("BUNDLED SOURCE LISTS OK:", len(mod.BUNDLED_SOURCE_LISTS))
+
+# restore is additive + idempotent; deleting a default then restoring brings it back
+first = win.restore_bundled_profiles()
+names_after_first_restore = set(win.profiles)
+victim = sorted(win.profiles)[0]
+del win.profiles[victim]
+win.save_profiles()
+win.restore_bundled_profiles()
+assert victim in win.profiles, "restore did not bring back a deleted default"
+assert set(win.profiles) == names_after_first_restore, "restore changed the profile set unexpectedly"
+n_before = len(win.profiles)
+win.restore_bundled_profiles()
+assert len(win.profiles) == n_before, "restore is not idempotent"
+print("PROFILE RESTORE OK")
+
 dlg = mod.SettingsDialog(win)
 app.processEvents()
 tabs = dlg._tabs

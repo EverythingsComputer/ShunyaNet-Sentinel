@@ -18,6 +18,8 @@ __pycache__/
 # Runtime state (created fresh by the app on first run)
 app_state*.json
 topic_profiles.json
+# NOTE: topic_profiles.default.json is NOT ignored - it ships with the app.
+sentinel_live_*/
 rolling_rss.txt
 Memory_Long_Term.txt
 Memory_Long_Term.txt.*
