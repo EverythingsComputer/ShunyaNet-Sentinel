@@ -96,17 +96,70 @@ from PySide6.QtWidgets import (
 # Paths / constants
 # --------------------------------------------------------------------------- #
 
-if getattr(sys, "frozen", False):
-    exe_dir = os.path.dirname(sys.executable)
-    app_bundle_dir = os.path.abspath(os.path.join(exe_dir, "..", ".."))
-    APP_DIR = os.path.abspath(os.path.join(app_bundle_dir, ".."))
-else:
-    APP_DIR = os.path.dirname(os.path.abspath(__file__))
+def _user_state_dir():
+    """Last-resort writable home for app_state.json / reports when the folder
+    next to the program is read-only (e.g. a macOS .app dropped in
+    /Applications, or Program Files installs)."""
+    d = os.path.join(os.path.expanduser("~"), ".shunyanet_sentinel")
+    try:
+        os.makedirs(d, exist_ok=True)
+    except Exception:
+        pass
+    return d
+
+
+def _is_writable(path):
+    return bool(path) and os.path.isdir(path) and os.access(path, os.W_OK)
+
+
+def _resolve_app_dir():
+    """Where the program keeps its user files (state, reports, memory, profiles).
+
+    Source checkout : the script's own folder.
+    Frozen bundle   : the folder containing the executable, so a zipped portable
+                      build keeps everything beside itself. On macOS that would
+                      be inside Foo.app/Contents/MacOS, which is both ugly and
+                      (once sealed) read-only, so state goes next to the .app
+                      instead. Anything not writable falls back to ~/.shunyanet_sentinel.
+    """
+    if not getattr(sys, "frozen", False):
+        return os.path.dirname(os.path.abspath(__file__))
+    exe_dir = os.path.dirname(os.path.abspath(sys.executable))
+    marker = os.sep + "Contents" + os.sep + "MacOS"
+    if sys.platform == "darwin" and exe_dir.endswith(marker):
+        app_root = os.path.abspath(os.path.join(exe_dir, "..", "..", ".."))
+        return app_root if _is_writable(app_root) else _user_state_dir()
+    return exe_dir if _is_writable(exe_dir) else _user_state_dir()
+
+
+APP_DIR = _resolve_app_dir()
 
 
 def resource_path(relative_path):
+    """Path to a file packaged INSIDE the bundle (read-only)."""
     base_path = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
     return os.path.join(base_path, relative_path)
+
+
+def shipped_path(relative_path):
+    """Path to a file that ships with the app (feed lists, prompt, default
+    profiles). A copy sitting next to the program wins so users can edit or add
+    their own; otherwise the packaged copy inside the bundle is used."""
+    beside = os.path.join(APP_DIR, relative_path)
+    if os.path.exists(beside):
+        return beside
+    packed = resource_path(relative_path)
+    return packed if os.path.exists(packed) else beside
+
+
+def shipped_dir(relative_path):
+    """Directory form of shipped_path(): first existing candidate, else the
+    next-to-program location (so writes/reports have a sane target)."""
+    beside = os.path.join(APP_DIR, relative_path)
+    if os.path.isdir(beside):
+        return beside
+    packed = resource_path(relative_path)
+    return packed if os.path.isdir(packed) else beside
 
 
 def load_assets():
@@ -142,7 +195,7 @@ ROLLING_FILE = os.path.join(APP_DIR, "rolling_rss.txt")
 PROFILE_FILE = os.path.join(APP_DIR, "topic_profiles.json")
 # Shipped with the app: read-only defaults, copied to PROFILE_FILE on first run
 # and re-mergeable any time from Profiles -> Restore Bundled Topic Profiles.
-BUNDLED_PROFILES_FILE = os.path.join(APP_DIR, "topic_profiles.default.json")
+BUNDLED_PROFILES_FILE = shipped_path("topic_profiles.default.json")
 
 # (menu label, filename inside 'Data Sources/') for the File menu submenu
 BUNDLED_SOURCE_LISTS = [
@@ -161,7 +214,7 @@ BUNDLED_SOURCE_LISTS = [
 SLACK_WEBHOOK_URL = ""
 STATE_FILE = os.path.join(APP_DIR, "app_state.json")
 SENTINEL_FILE = os.path.join(APP_DIR, ".sentinel_first_run")
-DEFAULT_PROMPT_FILE = os.path.join(APP_DIR, "sentinel_prompt.txt")
+DEFAULT_PROMPT_FILE = shipped_path("sentinel_prompt.txt")
 DEFAULT_REPORT_OUTPUT_DIR = os.path.join(APP_DIR, "Report_Output")
 MEMORY_SHORT_TERM_FILE = os.path.join(APP_DIR, "Memory_Short_Term.txt")
 MEMORY_LONG_TERM_FILE = os.path.join(APP_DIR, "Memory_Long_Term.txt")
@@ -3147,8 +3200,8 @@ class SentinelWindow(QMainWindow):
             return 0
 
     def load_bundled_sources(self, filename, quiet=False):
-        """Load one of the lists shipped in 'Data Sources/'."""
-        path = os.path.join(APP_DIR, "Data Sources", filename)
+        """Load one of the lists shipped with the app (in 'Data Sources/')."""
+        path = os.path.join(shipped_dir("Data Sources"), filename)
         if not os.path.exists(path):
             if not quiet:
                 QMessageBox.warning(self, "Not found",
@@ -3165,7 +3218,7 @@ class SentinelWindow(QMainWindow):
         state file predates feed persistence (so nobody silently gets the 8
         hardcoded demo URLs instead of the bundled test list)."""
         if not self._state_has_feeds:
-            path = os.path.join(APP_DIR, "Data Sources", "Default_test-v1.txt")
+            path = os.path.join(shipped_dir("Data Sources"), "Default_test-v1.txt")
             if os.path.exists(path):
                 with open(path, "r", encoding="utf-8") as fh:
                     urls = [line.strip() for line in fh
