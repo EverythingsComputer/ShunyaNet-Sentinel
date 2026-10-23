@@ -277,12 +277,31 @@ jobs:
           out="$APP_NAME-v${VERSION}-${PLATFORM}"
           { echo "=== zip ==="
             if [ -n "$APP_BUNDLE" ]; then
-              # ditto keeps executable bits and the code seal inside the .app
-              ditto -c -k --sequesterRsrc "$APP_BUNDLE" "$out.zip"
+              # ditto keeps executable bits and the code seal; --keepParent stores the
+              # .app itself rather than its innards at the root of the archive.
+              ditto -c -k --sequesterRsrc --keepParent "$APP_BUNDLE" "$out.zip"
             elif [ "$RUNNER_OS" = "Windows" ]; then
-              powershell -NoProfile -Command "Compress-Archive -Path dist\$env:APP_NAME\* -DestinationPath $out.zip"
+              # Quote for PowerShell, not bash: pass single-quoted literals so nothing
+              # is eaten by the shell on the way through.
+              # Windows ships bsdtar, which writes a real .zip (the -a flag infers the
+              # format from the extension) and is far quicker over hundreds of Qt files
+              # than Compress-Archive. Fall back to PowerShell if it is ever missing.
+              if [ -x /c/Windows/System32/tar.exe ]; then
+                /c/Windows/System32/tar.exe -a -cf "$out.zip" -C dist "$APP_NAME"
+              else
+                # Values travel in the environment: quoting does not survive YAML, bash
+                # and PowerShell, and $env: needs none of it.
+                ZIP_SRC="dist/$APP_NAME" ZIP_DST="$out.zip" \
+                  powershell -NoProfile -Command 'Compress-Archive -Path $env:ZIP_SRC -DestinationPath $env:ZIP_DST -Force'
+              fi 
             else
               (cd dist && zip -qry "../$out.zip" "$APP_NAME")
+            fi
+            echo "archive root entries:"
+            if [ "$RUNNER_OS" = "Windows" ]; then
+              ZIP_DST="$out.zip" powershell -NoProfile -Command 'Add-Type -AssemblyName System.IO.Compression.FileSystem; $z=[IO.Compression.ZipFile]::OpenRead((Resolve-Path $env:ZIP_DST)); $z.Entries | Select-Object -First 4 -ExpandProperty FullName; $z.Dispose()' 
+            else
+              unzip -Z1 "$out.zip" | head -4
             fi
             # macOS ships shasum, not sha256sum; Windows git-bash has sha256sum and
             # certutil. All three must produce the same "<hash>  <file>" format so a
