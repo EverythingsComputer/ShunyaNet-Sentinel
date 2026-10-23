@@ -3540,22 +3540,16 @@ class SentinelWindow(QMainWindow):
                 self.thread_safe_log("LLM reply had unexpected shape: %s"
                                      % str(data)[:300])
                 return None
+            # The reply is the message's `content` and nothing else. Do NOT fall
+            # back to `reasoning_content`/`reasoning`: those fields are the model's
+            # private scratch work, and when a thinking model spends the whole
+            # output budget thinking, salvaging them puts raw internal reasoning in
+            # front of the user as if it were the report (v3.2 regression, reverted).
             content = message.get("content") or ""
             if choice.get("finish_reason") == "length":
                 # Output cap hit mid-generation. The report is kept, truncated
                 # to the configured limit — that IS the intended ceiling.
                 self._llm_truncated_last_call = True
-                if not content.strip():
-                    # Some thinking-model servers (LM Studio + Qwen-class chat
-                    # templates) return an EMPTY content when cut off inside
-                    # the reasoning block. Salvage whatever partial text the
-                    # server exposed on the message instead of losing the
-                    # whole report to a cap that is meant to be a soft limit.
-                    for key in ("reasoning_content", "reasoning"):
-                        partial = message.get(key)
-                        if isinstance(partial, str) and partial.strip():
-                            content = partial
-                            break
             return content
         except Exception as exc:
             self.thread_safe_log("LLM call failed: %s" % exc)
