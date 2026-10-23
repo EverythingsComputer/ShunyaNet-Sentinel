@@ -258,12 +258,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ steps.ver.outputs.version }}
+          PLATFORM: ${{ matrix.platform }}
+          DIAG: ${{ runner.temp }}/build-log.txt
           BODY: |
             Portable builds: unzip anywhere and run. Nothing is installed, and nothing leaves your machine except the RSS feeds you load and any notifications you configure.
 
             These builds are not code-signed with a purchased certificate yet. macOS shows a one-time "unverified developer" prompt (right-click the app, then Open); Windows may show SmartScreen ("More info" then "Run anyway"). Check any download against the .sha256 file published beside it: `sha256sum -c <file>.zip.sha256`.
-        env:
-          DIAG: ${{ runner.temp }}/build-log.txt
         run: |
           chmod +x packaging/gh_release.sh
           out="$APP_NAME-v${VERSION}-${PLATFORM}"
@@ -282,7 +282,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PLATFORM: ${{ matrix.platform }}
-        env:
           DIAG: ${{ runner.temp }}/build-log.txt
         run: |
           chmod +x packaging/gh_release.sh
