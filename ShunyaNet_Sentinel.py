@@ -53,6 +53,7 @@ import os
 import re
 import html
 import json
+import threading
 import time
 import random
 import atexit
@@ -4034,6 +4035,18 @@ def clean_qt_shutdown():
 atexit.register(clean_qt_shutdown)
 
 
+def _emit(text):
+    """Print without assuming a console exists (windowed builds have no stdout)."""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            if stream is not None:
+                stream.write(text + "\n")
+                stream.flush()
+                return
+        except Exception:
+            continue
+
+
 def _cli_shortcuts():
     """Handle command-line queries that must not open a window.
 
@@ -4049,6 +4062,14 @@ def _cli_shortcuts():
         return 0
     if "--smoke-test" not in sys.argv:
         return None
+
+    # Hard wall-clock bound: if Qt init ever wedges (odd GPU/driver on a build
+    # runner), kill the process instead of holding a CI job until it times out.
+    def _watchdog():
+        time.sleep(float(os.environ.get("SENTINEL_SMOKE_TIMEOUT", "120")))
+        os._exit(3)
+
+    threading.Thread(target=_watchdog, daemon=True).start()
 
     report = []
     failed = []
@@ -4113,7 +4134,7 @@ def _cli_shortcuts():
     lines += ["  " + l for l in report]
     lines += ["  FAIL " + l for l in failed]
     text = "\n".join(lines)
-    print(text, flush=True)
+    _emit(text)
     log_path = os.environ.get("SENTINEL_SMOKE_FILE", "").strip()
     if log_path:
         try:
@@ -4122,7 +4143,7 @@ def _cli_shortcuts():
                 fh.flush()
                 os.fsync(fh.fileno())
         except Exception as exc:
-            print("SMOKE log write failed: %r" % (exc,), flush=True)
+            _emit("SMOKE log write failed: %r" % (exc,))
     return 0 if not failed else 1
 
 

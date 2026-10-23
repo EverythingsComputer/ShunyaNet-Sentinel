@@ -34,6 +34,8 @@ jobs:
 
     name: ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
+    # A bundle that cannot boot must fail fast, not hold a runner for hours.
+    timeout-minutes: 40
 
     steps:
       - uses: actions/checkout@v4
@@ -60,9 +62,11 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          curl -fsSL https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          export PATH="$HOME/.local/bin:$PATH"
+          command -v uv || curl -fsSL https://astral.sh/uv/install.sh | sh
           uv python install "${PYTHON_VERSION}"
+          # --seed is not used: uv venvs carry no pip, and installing with
+          # `uv pip` below is faster and does not depend on ensurepip.
           uv venv --python "${PYTHON_VERSION}" .venv-standalone
           echo "VENV=$PWD/.venv-standalone" >> "$GITHUB_ENV"
 
@@ -74,10 +78,12 @@ jobs:
             python -m pip install -r requirements.txt pyinstaller pillow
             echo "PY=python" >> "$GITHUB_ENV"
           else
-            "$VENV/bin/python" -m pip install --upgrade pip
-            "$VENV/bin/python" -m pip install -r requirements.txt pyinstaller pillow
+            export PATH="$HOME/.local/bin:$PATH"
+            uv pip install --python "$VENV/bin/python" -r requirements.txt pyinstaller pillow
             echo "PY=$VENV/bin/python" >> "$GITHUB_ENV"
           fi
+          # Fail loudly here, not 6 minutes later inside PyInstaller.
+          "$PY" -c "import sys, PySide6, feedparser, requests, PyInstaller; print('interpreter:', sys.version); print('PySide6 ok, PyInstaller', PyInstaller.__version__)"
 
       - name: Install Qt runtime libraries (Linux, for the smoke test)
         if: runner.os == 'Linux'
