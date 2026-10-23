@@ -2,14 +2,64 @@
 # One URL per line. Lines starting with # are comments.
 
 # Core AI news
-https://news.google.com/rss/search?q=%22artificial+intelligence%22+OR+%22large+language+model%22+OR+OpenAI+OR+Anthropic+OR+Gemini&hl=en-US&gl=US&ceid=US:en
-https://news.google.com/rss/search?q=AI+regulation+OR+%22AI+safety%22+OR+%22AI+act%22&hl=en-US&gl=US&ceid=US:en
-https://news.google.com/rss/search?q=%22chip+shortage%22+OR+semiconductor+OR+TSMC+OR+Nvidia&hl=en-US&gl=US&ceid=US:en
-
-# Tech industry / big tech
-https://news.google.com/rss/search?q=Apple+OR+Microsoft+OR+Google+OR+Meta+OR+Amazon+tech&hl=en-US&gl=US&ceid=US:en
-https://news.google.com/rss/search?q=cybersecurity+OR+%22data+breach%22+OR+ransomware&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=artificial+intelligence+news&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22large+language+model%22&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=OpenAI&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=Anthropic+Claude&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=Google+Gemini+AI&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=Meta+Llama+AI&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=Microsoft+Copilot&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=Nvidia+AI+chips&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=AI+regulation&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22AI+safety%22&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=EU+AI+Act&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=AI+chip+shortage+semiconductor&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=TSMC&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=ASML&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=AI+data+center&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=quantum+computing&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=robotics+automation&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=autonomous+vehicles+self-driving&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=tech+layoffs&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=cybersecurity+breach&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=ransomware&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22data+breach%22&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=zero-day+vulnerability&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=malware+trojan&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=phishing+attack&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=cloud+computing+AWS+Azure+GCP&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=software+supply+chain+attack&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=privacy+surveillance+tech&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=social+media+regulation&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=antitrust+big+tech&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=tech+IPO+startup+funding&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=5G+6G+telecom&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=space+technology+satellite&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=biotech+AI+drug+discovery&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=AI+healthcare&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=AI+education&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=AI+defense+military&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=deepfake+misinformation&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=AI+copyright+lawsuit&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=AI+energy+consumption&hl=en-US&gl=US&ceid=US:en
 
 # Wires
 https://feeds.bbci.co.uk/news/technology/rss.xml
 https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml
+https://www.wired.com/feed/rss
+https://techcrunch.com/feed/
+https://www.theverge.com/rss/index.xml
+https://arstechnica.com/feed/
+https://www.zdnet.com/news/rss.xml
+https://www.cnet.com/rss/news/
+https://www.engadget.com/rss.xml
+https://venturebeat.com/feed/
+https://www.technologyreview.com/feed/
+https://spectrum.ieee.org/rss/fulltext
+https://www.infoq.com/feed/
+https://www.darkreading.com/rss.xml
+https://www.bleepingcomputer.com/feed/
+https://krebsonsecurity.com/feed/
+https://www.schneier.com/feed/
+https://www.securityweek.com/feed/
+https://threatpost.com/feed/
