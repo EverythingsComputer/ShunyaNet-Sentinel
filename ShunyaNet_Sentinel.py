@@ -464,6 +464,10 @@ DEFAULT_SETTINGS = {
     "NOTIFY_SUMMARIES": "1",
     "UI_THEME": DEFAULT_THEME,
     "FEED_LINK_PREVIEWS": "0",   # show host-name preview line under links
+    # Ask OpenAI-compatible servers to skip the model's internal thinking block so
+    # the reply arrives inside the configured length. Sent as chat_template_kwargs;
+    # servers that reject the field are remembered and simply not sent it.
+    "SKIP_MODEL_THINKING": "1",
     "MAX_INPUT_TOKENS": 4000,
     "MAX_OUTPUT_TOKENS": 1500,
     "MAX_INPUT_TOKENS_BULK": 20000,
@@ -932,6 +936,10 @@ class FeedEntry(QFrame):
         self.toggle_btn.setCursor(Qt.PointingHandCursor)
         self.toggle_btn.setToolTip("Expand / collapse this report")
         self.toggle_btn.setText("\u25b8")
+        # Connect here, not in _popout(): the arrow did nothing until a card had been
+        # opened in the popout window once, because that was the only place this was
+        # ever wired up.
+        self.toggle_btn.clicked.connect(self._on_toggle)
         hlay.addWidget(self.toggle_btn)
 
         self.cap = QLabel(title)
@@ -982,8 +990,6 @@ class FeedEntry(QFrame):
         b.setHtml(self.body.toHtml())
         v.addWidget(b)
         dlg.exec()
-
-        self.toggle_btn.clicked.connect(self._on_toggle)
 
     def _on_toggle(self):
         open_it = self.toggle_btn.isChecked()
@@ -1161,6 +1167,13 @@ class SettingsDialog(QDialog):
         self._add_check(lform, "USE_CHUNKED_MODE", "Split large pulls into chunks",
                         "Prevents overflowing the model's context, but the same event "
                         "may be reported in two chunks.")
+        self._add_check(lform, "SKIP_MODEL_THINKING",
+                        "Ask thinking models for the answer only",
+                        "Sends chat_template_kwargs thinking=false so a reasoning model "
+                        "does not spend the whole reply budget on internal thinking. "
+                        "Servers that do not understand it are detected automatically "
+                        "and the flag is dropped; uncheck if your server expects to "
+                        "always echo reasoning back.")
         self._add_row(lform, "LLM request timeout (s):", "LLM_TIMEOUT", 30, 7200,
                       "How long to wait for the LLM to answer one request before "
                       "giving up. Big models on small GPUs may need 1800+.")
@@ -3500,6 +3513,33 @@ class SentinelWindow(QMainWindow):
     # LLM / RSS pipeline (unchanged logic)
     # ================================================================== #
 
+    def _post_llm(self, url, headers, payload, timeout):
+        """POST one chat request, retrying once on a connection-level failure.
+
+        Returns (status_code, body_text) or None if the request never got through.
+        If the server rejects `chat_template_kwargs` (not every OpenAI-compatible
+        endpoint accepts it), remember that and resend without it, so a thinking-model
+        preference can never break an alert or summary pass."""
+        last_exc = None
+        for attempt in (1, 2):
+            try:
+                resp = requests.post(url, headers=headers, json=payload, timeout=timeout)
+            except requests.exceptions.RequestException as exc:
+                last_exc = exc
+                if attempt == 1 and not self._shutting_down:
+                    self.thread_safe_log("LLM connection issue, retrying once: %s" % exc)
+                    time.sleep(3)
+                continue
+            if resp.status_code in (400, 422) and "chat_template_kwargs" in payload:
+                self._thinking_kw_rejected = True
+                self.thread_safe_log("Server rejected the thinking-mode flag; "
+                                     "resending without it.")
+                payload.pop("chat_template_kwargs", None)
+                continue
+            return resp.status_code, resp.text
+        self.thread_safe_log("LLM call failed: %s" % last_exc)
+        return None
+
     def call_llm(self, prompt, max_tokens):
         self._llm_truncated_last_call = False
         provider = self.get_setting("LLM_PROVIDER")
@@ -3509,48 +3549,67 @@ class SentinelWindow(QMainWindow):
         headers = {"Content-Type": "application/json"}
         if api_key:
             headers["Authorization"] = "Bearer %s" % api_key
-        payload = {"model": model,
-                   "messages": [{"role": "user", "content": prompt}],
-                   "max_tokens": max_tokens}
         try:
             url = chat_completions_url(provider, base_url)
             timeout = self.get_setting("LLM_TIMEOUT", int) or 900
-            last_exc = None
-            for attempt in (1, 2):
-                try:
-                    resp = requests.post(url, headers=headers, json=payload,
-                                         timeout=timeout)
+
+            # Output budget ladder. A thinking model can use the entire allowance on
+            # its internal reasoning and return an empty answer with
+            # finish_reason="length" - there is then nothing to report, so ask again
+            # with more room instead of returning nothing. Bounded at 4x the setting
+            # (never below 32k) so a runaway request cannot hold the GPU forever.
+            caps = [int(max_tokens)]
+            ceiling = max(int(max_tokens) * 4, 32000)
+            while len(caps) < 3:
+                nxt = min(caps[-1] * 3, ceiling)
+                if nxt <= caps[-1]:
                     break
-                except requests.exceptions.RequestException as exc:
-                    last_exc = exc
-                    if attempt == 1 and not self._shutting_down:
-                        self.thread_safe_log("LLM connection issue, retrying once: %s" % exc)
-                        time.sleep(3)
-            else:
-                raise last_exc
-            if resp.status_code != 200:
-                self.thread_safe_log("LLM error %s: %s"
-                                     % (resp.status_code, resp.text[:400]))
-                return None
-            data = resp.json()
-            try:
-                choice = data["choices"][0]
-                message = choice["message"]
-            except (KeyError, IndexError, TypeError):
-                self.thread_safe_log("LLM reply had unexpected shape: %s"
-                                     % str(data)[:300])
-                return None
-            # The reply is the message's `content` and nothing else. Do NOT fall
-            # back to `reasoning_content`/`reasoning`: those fields are the model's
-            # private scratch work, and when a thinking model spends the whole
-            # output budget thinking, salvaging them puts raw internal reasoning in
-            # front of the user as if it were the report (v3.2 regression, reverted).
-            content = message.get("content") or ""
-            if choice.get("finish_reason") == "length":
-                # Output cap hit mid-generation. The report is kept, truncated
-                # to the configured limit — that IS the intended ceiling.
+                caps.append(nxt)
+
+            want_thinking_off = self.get_setting("SKIP_MODEL_THINKING") == "1"
+            for idx, cap in enumerate(caps):
+                payload = {"model": model,
+                           "messages": [{"role": "user", "content": prompt}],
+                           "max_tokens": cap}
+                if want_thinking_off and not getattr(self, "_thinking_kw_rejected", False):
+                    payload["chat_template_kwargs"] = {"thinking": False}
+                got = self._post_llm(url, headers, payload, timeout)
+                if got is None:
+                    return None
+                status, body = got
+                if status != 200:
+                    self.thread_safe_log("LLM error %s: %s" % (status, body[:400]))
+                    return None
+                try:
+                    data = json.loads(body)
+                    choice = data["choices"][0]
+                    message = choice["message"]
+                except (KeyError, IndexError, TypeError, ValueError):
+                    self.thread_safe_log("LLM reply had unexpected shape: %s"
+                                         % body[:300])
+                    return None
+                # The reply is the message's `content` and nothing else. Do NOT fall
+                # back to `reasoning_content`/`reasoning`: those fields are the model's
+                # private scratch work, and salvaging them puts raw internal reasoning
+                # in front of the user as if it were the report (v3.2 regression).
+                content = message.get("content") or ""
+                truncated = choice.get("finish_reason") == "length"
+                if content.strip() or not truncated:
+                    self._llm_truncated_last_call = truncated
+                    return content
+                if idx + 1 < len(caps):
+                    self.thread_safe_log(
+                        "Model used all %d tokens on internal reasoning without "
+                        "answering; retrying with %d." % (cap, caps[idx + 1]))
+                    continue
                 self._llm_truncated_last_call = True
-            return content
+                self.thread_safe_log(
+                    "Model spent %d tokens on internal reasoning and never answered. "
+                    "Raise 'Max reply length'/'Bulk report length', or turn thinking "
+                    "off in the server; no report was produced and your data is kept."
+                    % cap)
+                return ""
+            return ""
         except Exception as exc:
             self.thread_safe_log("LLM call failed: %s" % exc)
             return None
