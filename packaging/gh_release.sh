@@ -100,12 +100,15 @@ upload_asset() {
       "$API/repos/$REPO/releases/assets/$del" >/dev/null
   done < <("$PY" - "$tmp" "$name" <<'PY'
 import json, sys
+# GET /releases/{id}/assets returns a bare array; a failed call returns an object.
 try:
     data = json.load(open(sys.argv[1], encoding="utf-8"))
-except Exception:
+except Exception as exc:
+    print("asset list unreadable: %s" % exc, file=sys.stderr)
     sys.exit(0)
-for a in (data.get("assets") or []):
-    if a.get("name") == sys.argv[2]:
+items = data if isinstance(data, list) else (data.get("assets") or [])
+for a in items:
+    if isinstance(a, dict) and a.get("name") == sys.argv[2]:
         print(a.get("id"))
 PY
 )

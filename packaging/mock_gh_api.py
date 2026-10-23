@@ -55,7 +55,9 @@ class Handler(BaseHTTPRequestHandler):
             rid = head.split("/releases/")[1].split("/")[0]
             if not rid.isdigit():
                 return self._send(404, {"message": "Not Found"})
-            return self._send(200, {"assets": [a for a in STATE["assets"]]})
+            # GitHub returns a bare array here - the shape matters, that is the
+            # whole point of mocking it.
+            return self._send(200, list(STATE["assets"]))
         return self._send(404, {"message": "Not Found"})
 
     def do_POST(self):

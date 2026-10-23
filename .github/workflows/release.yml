@@ -108,6 +108,32 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libgl1 libegl1 libxkbcommon-x11-0 libdbus-1-3 libglib2.0-0 libfontconfig1 libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libxcb-render-util0
 
+      # Does the program itself boot on this OS, with no packaging involved? If this
+      # passes and the bundle smoke test later fails, the problem is the bundle.
+      - name: Source smoke test (no packaging)
+        shell: bash
+        env:
+          DIAG: ${{ runner.temp }}/build-log.txt
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          set +e
+          export SENTINEL_HOME="$RUNNER_TEMP/sentinel-source-home"
+          export SENTINEL_SMOKE_FILE="$RUNNER_TEMP/smoke-source.txt"
+          rm -rf "$SENTINEL_HOME"; mkdir -p "$SENTINEL_HOME"
+          { echo "=== source smoke: $PLATFORM ==="
+            "$PY" ShunyaNet_Sentinel.py --smoke-test > "$RUNNER_TEMP/source-smoke.log" 2>&1 &
+            pid=$!
+            ( sleep 180; kill -9 "$pid" 2>/dev/null ) &
+            watcher=$!
+            wait "$pid"; echo "source smoke exit: $?"
+            kill "$watcher" 2>/dev/null; wait "$watcher" 2>/dev/null
+            cat "$RUNNER_TEMP/source-smoke.log" 2>/dev/null
+            if [ -f "$SENTINEL_SMOKE_FILE" ]; then cat "$SENTINEL_SMOKE_FILE"; else echo "NO SOURCE SMOKE FILE"; fi
+          } 2>&1 | tee -a "$DIAG"
+          grep -q "SMOKE OK" "$SENTINEL_SMOKE_FILE" 2>/dev/null || {
+            echo "::error::SOURCE_SMOKE_FAILED on $PLATFORM - the program does not boot from source"
+            exit 1; }
+
       # ---------- build ----------
       - name: Generate icons
         shell: bash
@@ -201,9 +227,13 @@ jobs:
               # Qt platform plugin or core DLL means the loader will fail.
               echo "--- bundle contents ---"
               ls -la "$(dirname "$BIN")" | head -10
-              for f in _internal/PySide6/Qt/plugins/platforms/qwindows.dll \
-                       _internal/PySide6/Qt6Core.dll _internal/shiboken6; do
-                if [ -e "dist/$APP_NAME/$f" ]; then echo "  present: $f"; else echo "  MISSING: $f"; fi
+              # Where the Qt platform plugins landed (the path differs per OS, so
+              # search rather than assume) and whether the core runtime is there.
+              echo "  platform plugins:"
+              find "dist/$APP_NAME/_internal" -path "*platforms*" \( -name "*.dll" -o -name "*.dylib" \) 2>/dev/null | sed 's|.*_internal/||' | head -8 | sed 's/^/    /'
+              for f in Qt6Core.dll Qt5Core.dll python3.dll python312.dll; do
+                hit=$(find "dist/$APP_NAME/_internal" -maxdepth 2 -name "$f" 2>/dev/null | head -1)
+                if [ -n "$hit" ]; then echo "    present: $f"; else echo "    not found: $f"; fi
               done
               powershell -NoProfile -ExecutionPolicy Bypass -File packaging/smoke_windows.ps1 \
                 -Exe "$(cygpath -w "$BIN")" -SmokeLimitSec "$SMOKE_LIMIT" \
