@@ -115,6 +115,8 @@ def _is_writable(path):
 def _resolve_app_dir():
     """Where the program keeps its user files (state, reports, memory, profiles).
 
+    SENTINEL_HOME environment variable wins (used by CI smoke runs and handy for
+    keeping a portable bundle's data elsewhere).
     Source checkout : the script's own folder.
     Frozen bundle   : the folder containing the executable, so a zipped portable
                       build keeps everything beside itself. On macOS that would
@@ -122,6 +124,13 @@ def _resolve_app_dir():
                       (once sealed) read-only, so state goes next to the .app
                       instead. Anything not writable falls back to ~/.shunyanet_sentinel.
     """
+    override = os.environ.get("SENTINEL_HOME", "").strip()
+    if override:
+        try:
+            os.makedirs(override, exist_ok=True)
+        except Exception:
+            pass
+        return os.path.abspath(override)
     if not getattr(sys, "frozen", False):
         return os.path.dirname(os.path.abspath(__file__))
     exe_dir = os.path.dirname(os.path.abspath(sys.executable))
@@ -2127,6 +2136,8 @@ class SentinelWindow(QMainWindow):
             QTimer.singleShot(350, self._maybe_open_wizard)
 
     def _maybe_open_wizard(self):
+        if os.environ.get("SENTINEL_NO_WIZARD", "").strip() not in ("", "0"):
+            return          # automated run (release smoke test): never block on a dialog
         self.show_wizard()
         try:
             with open(SENTINEL_FILE, "w", encoding="utf-8") as fh:
@@ -4023,6 +4034,98 @@ def clean_qt_shutdown():
 atexit.register(clean_qt_shutdown)
 
 
+def _cli_shortcuts():
+    """Handle command-line queries that must not open a window.
+
+      --version          print the version and exit 0
+      --smoke-test       boot the real GUI offscreen, verify it came up with its
+                         shipped resources, print SMOKE_OK lines, exit 0/1.
+                         Used by the release build to prove a bundle actually runs.
+                         Set SENTINEL_SMOKE_FILE to also write the report to a file
+                         (frozen Windows builds have no console to write to).
+    """
+    if "--version" in sys.argv:
+        print("ShunyaNet Sentinel v%s" % APP_VERSION)
+        return 0
+    if "--smoke-test" not in sys.argv:
+        return None
+
+    report = []
+    failed = []
+
+    def check(label, ok, detail=""):
+        (report if ok else failed).append("%s %s" % (label, detail))
+        return ok
+
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    os.environ["SENTINEL_NO_WIZARD"] = "1"
+    # no modal dialog may block an unattended run
+    QMessageBox.information = staticmethod(lambda *a, **k: QMessageBox.Ok)
+    QMessageBox.warning = staticmethod(lambda *a, **k: QMessageBox.Ok)
+    QMessageBox.question = staticmethod(lambda *a, **k: QMessageBox.No)
+    try:
+        app = QApplication(sys.argv[:1])
+        global BASE_FONT_FAMILY
+        BASE_FONT_FAMILY = _pick_monospace_font()
+        window = SentinelWindow()
+        window.show()
+        # stop every timer (auto-fetch countdown, rain) so a smoke run never
+        # reaches out to the network or leaves a worker thread behind
+        for t in window.findChildren(QTimer):
+            try:
+                t.stop()
+            except Exception:
+                pass
+        for _ in range(25):            # let timers/threads settle
+            app.processEvents()
+            time.sleep(0.04)
+
+        check("window", bool(window.windowTitle()), repr(window.windowTitle()))
+        check("version", APP_VERSION not in ("", "0"), "v%s" % APP_VERSION)
+        check("profiles", len(window.profiles) > 0, "%d loaded" % len(window.profiles))
+        check("feeds", len(window.feeds) > 0, "%d armed" % len(window.feeds))
+        sections = getattr(window, "prompt_sections", {}) or {}
+        prompt_ok = bool(sections.get("ALERT") or sections.get("SUMMARY"))
+        check("prompt", prompt_ok, "%s [%s]" % (
+            os.path.basename(getattr(window, "prompt_file", "") or DEFAULT_PROMPT_FILE),
+            ",".join(sorted(k for k, v in sections.items() if v))))
+        check("source_lists", os.path.isdir(shipped_dir("Data Sources")),
+              shipped_dir("Data Sources"))
+        try:
+            probe = os.path.join(APP_DIR, ".sentinel_write_test")
+            with open(probe, "w") as fh:
+                fh.write("ok")
+            os.remove(probe)
+            state_ok, state_detail = True, APP_DIR
+        except Exception as exc:
+            state_ok, state_detail = False, "%s (%s)" % (APP_DIR, exc)
+        check("state_writable", state_ok, state_detail)
+
+        window._shutting_down = True
+        window.close()
+        app.processEvents()
+    except Exception as exc:
+        failed.append("boot EXCEPTION %r" % exc)
+
+    lines = ["SMOKE %s v%s frozen=%s" % (
+                "OK" if not failed else "FAILED", APP_VERSION,
+                bool(getattr(sys, "frozen", False)))]
+    lines += ["  " + l for l in report]
+    lines += ["  FAIL " + l for l in failed]
+    text = "\n".join(lines)
+    print(text, flush=True)
+    log_path = os.environ.get("SENTINEL_SMOKE_FILE", "").strip()
+    if log_path:
+        try:
+            with open(log_path, "w", encoding="utf-8") as fh:
+                fh.write(text + "\n")
+                fh.flush()
+                os.fsync(fh.fileno())
+        except Exception as exc:
+            print("SMOKE log write failed: %r" % (exc,), flush=True)
+    return 0 if not failed else 1
+
+
 def main():
     app = QApplication(sys.argv)
     app.setApplicationName("ShunyaNet Sentinel")
@@ -4049,4 +4152,7 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    _code = _cli_shortcuts()
+    if _code is None:
+        _code = main()
+    sys.exit(_code)

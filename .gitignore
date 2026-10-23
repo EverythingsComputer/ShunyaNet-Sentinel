@@ -27,10 +27,14 @@ Memory_Short_Term.txt
 Report_Output/
 .sentinel_first_run
 
-# Build outputs (if using PyInstaller)
+# Build outputs (PyInstaller) and release artifacts
 build/
 dist/
-*.spec
+*.zip
+*.zip.sha256
+packaging/icons/
+# ...but the build spec itself is part of the project
+!ShunyaNet_Sentinel.spec
 
 # Personal scratch / superseded files kept locally, never published
 _local-scratch/

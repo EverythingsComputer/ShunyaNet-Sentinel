@@ -219,6 +219,44 @@ Suggestions:
 
 ------------------------------------------------------------------------
 
+# Prebuilt Executables
+
+Downloads live on the [Releases page](https://github.com/EverythingsComputer/ShunyaNet-Sentinel/releases). Each release carries one portable zip per platform:
+
+| File | Runs on | Launch with |
+|---|---|---|
+| `ShunyaNetSentinel-v<X.Y.Z>-windows-x86_64.zip` | Windows 10/11, 64-bit | `ShunyaNetSentinel.exe` |
+| `ShunyaNetSentinel-v<X.Y.Z>-macos-arm64.zip` | Apple silicon Macs (macOS 11+) | `ShunyaNetSentinel.app` |
+| `ShunyaNetSentinel-v<X.Y.Z>-macos-x86_64.zip` | Intel Macs (macOS 11+) | `ShunyaNetSentinel.app` |
+| `ShunyaNetSentinel-v<X.Y.Z>-linux-x86_64.zip` | Linux, 64-bit (X11/Wayland) | `./ShunyaNetSentinel` |
+
+Unzip it anywhere and run it — no installer, no Python, nothing written outside the folder. Every zip ships with a `.sha256` file beside it; check it after downloading:
+
+    sha256sum -c ShunyaNetSentinel-v<X.Y.Z>-linux-x86_64.zip.sha256
+
+**First launch, macOS:** the app is built in GitHub Actions and sealed ad-hoc, but not notarized (that requires an Apple Developer ID). Gatekeeper therefore says "cannot be opened because the developer cannot be verified" the first time. Right-click the app → **Open** → **Open** in the dialog. That is a one-time approval per download; it is not damage and not malware.
+
+**First launch, Windows:** SmartScreen may say "Windows protected your PC" once. Click **More info** → **Run anyway**. Same reason: no purchased code-signing certificate yet. If you would rather skip the trust question entirely, run from source — you can read every line before it executes.
+
+**Where your files end up:** beside the program (portable). On macOS they go next to the `.app`, never inside it. If that location is read-only — a `.app` in /Applications, an installed copy under Program Files — Sentinel falls back to `~/.shunyanet_sentinel`. Set `SENTINEL_HOME=/some/dir` to choose the location yourself; that directory then holds `app_state.json`, your topic profiles, memory files and `Report_Output/`.
+
+**Command line:** `--version` prints the version. `--smoke-test` boots the real interface headless, checks it came up with its bundled feed lists, prompt and profiles, prints `SMOKE OK` and exits — the release build runs this on all four platforms so a broken bundle can never be published.
+
+------------------------------------------------------------------------
+
+# Building an Executable Yourself
+
+Only needed if you want a build for a platform without a release, or you want to change icons/paths:
+
+    python3 -m venv venv && source venv/bin/activate    # Windows: venv\Scripts\Activate.ps1
+    pip install -r requirements.txt pyinstaller pillow
+    python packaging/make_icons.py                      # builds .ico / .icns from assets/app_icon.png
+    pyinstaller --noconfirm ShunyaNet_Sentinel.spec
+
+Output lands in `dist/ShunyaNetSentinel/` (one folder, roughly 180 MB unpacked / 75 MB zipped — PySide6 drags the Qt framework along; debug symbols are stripped by default, set `SENTINEL_STRIP=0` if you need them for a crash report). macOS produces `ShunyaNetSentinel.app`; seal it for local use with `codesign --force --deep --sign - dist/ShunyaNetSentinel/ShunyaNetSentinel.app`. A build machine must match the target platform: Windows builds must happen on Windows, and so on. The workflow in `.github/workflows/release.yml` does exactly this on four runners whenever you push a `v*` tag, refuses to publish if any bundle fails its smoke test, and attaches the zips to the Release.
+
+------------------------------------------------------------------------
+
 # Status
 
 Beta (v3.3)
