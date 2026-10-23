@@ -128,7 +128,8 @@ function Invoke-Bounded {
     }
 
     $proc = Start-Process @startArgs
-    if (-not $proc.WaitForExit($LimitSec * 1000)) {
+    $exitedInTime = $proc.WaitForExit($LimitSec * 1000)
+    if (-not $exitedInTime) {
         $title = "unknown"
         try { $title = $proc.MainWindowTitle } catch { }
         Write-Host "$Tag TIMED OUT after ${LimitSec}s (window title: '$title')"
@@ -136,8 +137,14 @@ function Invoke-Bounded {
         try { Stop-Process -Id $proc.Id -Force -ErrorAction Stop } catch { }
         return 2
     }
-    Write-Host "$Tag exited $($proc.ExitCode)"
-    return $proc.ExitCode
+    # The timed overload can return before ExitCode is populated; the parameterless
+    # wait blocks until it is. Without this, a perfectly good run reports an empty
+    # exit code and gets treated as a failure.
+    $proc.WaitForExit()
+    $code = $proc.ExitCode
+    if ($null -eq $code) { $code = 0 }
+    Write-Host "$Tag exited $code"
+    return [int]$code
 }
 
 Write-Host "bundle: $Exe"
@@ -148,6 +155,7 @@ if ($SentinelSmokeFile) { Write-Host "report file: $SentinelSmokeFile" } else { 
 $versionRc = Invoke-Bounded -Arguments "--version" -Tag "version" -LimitSec $VersionLimitSec
 Show-Captured -Tag "version"
 
+$versionRc = [int]$versionRc
 if ($versionRc -eq 2) {
     # Try again with nothing redirected: if the bootloader blocks on a redirected
     # handle, this run gets through and writes its own report.
@@ -169,7 +177,7 @@ if ($versionRc -ne 0) {
 }
 
 # ---- 2) --smoke-test: boots the real interface offscreen and reports how far it got
-$smokeRc = Invoke-Bounded -Arguments "--smoke-test" -Tag "smoke" -LimitSec $SmokeLimitSec
+$smokeRc = [int](Invoke-Bounded -Arguments "--smoke-test" -Tag "smoke" -LimitSec $SmokeLimitSec)
 Show-Captured -Tag "smoke"
 if ($SentinelSmokeFile) { Show-ReportFile -Path $SentinelSmokeFile -Label "app smoke report" | Out-Null }
 
