@@ -192,6 +192,8 @@ jobs:
             ${{ env.APP_NAME }}-${{ steps.ver.outputs.version }}-${{ matrix.platform }}.zip
             ${{ env.APP_NAME }}-${{ steps.ver.outputs.version }}-${{ matrix.platform }}.zip.sha256
           fail_on_unmatched_files: true
+          # re-running a release must replace its zips, not 422 on duplicates
+          overwrite_existing: true
           generate_release_notes: true
           body: |
             Portable builds: unzip anywhere and run. Nothing is installed, and nothing leaves your machine except the RSS feeds you load and any notifications you configure.
