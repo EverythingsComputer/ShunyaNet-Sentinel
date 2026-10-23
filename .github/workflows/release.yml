@@ -72,18 +72,32 @@ jobs:
 
       - name: Install build dependencies
         shell: bash
+        env:
+          DIAG: ${{ runner.temp }}/install-log.txt
         run: |
+          # NOTE: GITHUB_ENV only reaches LATER steps, so pick the interpreter in a
+          # plain shell variable and use that here; export it for the next steps.
+          : > "$DIAG"
           if [ "$RUNNER_OS" = "Windows" ]; then
-            python -m pip install --upgrade pip
-            python -m pip install -r requirements.txt pyinstaller pillow
-            echo "PY=python" >> "$GITHUB_ENV"
+            PY_BIN=python
+            { python -m pip install --upgrade pip
+              python -m pip install -r requirements.txt pyinstaller pillow; } 2>&1 | tee -a "$DIAG"
+            test "${PIPESTATUS[0]}" -eq 0
           else
             export PATH="$HOME/.local/bin:$PATH"
-            uv pip install --python "$VENV/bin/python" -r requirements.txt pyinstaller pillow
-            echo "PY=$VENV/bin/python" >> "$GITHUB_ENV"
+            PY_BIN="$VENV/bin/python"
+            { uv pip install --python "$PY_BIN" -r requirements.txt pyinstaller pillow; } 2>&1 | tee -a "$DIAG"
+            if [ "${PIPESTATUS[0]}" -ne 0 ]; then
+              echo "uv install failed; falling back to pip inside the venv" | tee -a "$DIAG"
+              { "$PY_BIN" -m ensurepip --upgrade
+                "$PY_BIN" -m pip install -r requirements.txt pyinstaller pillow; } 2>&1 | tee -a "$DIAG"
+              test "${PIPESTATUS[0]}" -eq 0
+            fi
           fi
-          # Fail loudly here, not 6 minutes later inside PyInstaller.
-          "$PY" -c "import sys, PySide6, feedparser, requests, PyInstaller; print('interpreter:', sys.version); print('PySide6 ok, PyInstaller', PyInstaller.__version__)"
+          echo "PY=$PY_BIN" >> "$GITHUB_ENV"
+          # Fail loudly here, not six minutes later inside PyInstaller.
+          { "$PY_BIN" -c "import sys, PySide6, feedparser, requests, PyInstaller; print('interpreter:', sys.version); print('PySide6 ok, PyInstaller', PyInstaller.__version__)" ; } 2>&1 | tee -a "$DIAG"
+          test "${PIPESTATUS[0]}" -eq 0
 
       - name: Install Qt runtime libraries (Linux, for the smoke test)
         if: runner.os == 'Linux'
@@ -101,11 +115,7 @@ jobs:
       - name: Build with PyInstaller
         shell: bash
         run: |
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            python -m PyInstaller --noconfirm --log-level INFO --distpath dist --workpath build ShunyaNet_Sentinel.spec
-          else
-            "$VENV/bin/pyinstaller" --noconfirm --log-level INFO --distpath dist --workpath build ShunyaNet_Sentinel.spec
-          fi
+          "$PY" -m PyInstaller --noconfirm --log-level INFO --distpath dist --workpath build ShunyaNet_Sentinel.spec
 
       # ---------- macOS: seal the .app (ad-hoc, no certificate needed) ----------
       # Without a signature seal Apple silicon reports "app is damaged". Ad-hoc
@@ -183,6 +193,19 @@ jobs:
             certutil -hashfile "$out.zip" SHA256 > "$out.zip.sha256"
           fi
           ls -la "$out.zip" "$out.zip.sha256"
+
+      # A failed job's log is not readable without repo admin rights, so on
+      # failure publish our own copy of the install log as a release asset -
+      # anyone can then read why the build broke.
+      - name: Publish build diagnostics (failures only)
+        if: failure() && startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        continue-on-error: true
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            ${{ runner.temp }}/install-log.txt
+          overwrite_existing: true
 
       - name: Upload to the Release (tag pushes only)
         if: startsWith(github.ref, 'refs/tags/v')
