@@ -773,32 +773,60 @@ def _link_html(url, accent, include_previews):
 
 
 def render_report_html(text, include_previews=False, accent=None):
-    """Escape report text and turn bare URLs into clickable anchors.
-
-    Returns HTML safe for setHtml(); preserves line breaks via <br>. The link
-    colour follows the active theme's accent so it stays readable on every
-    palette (a hardcoded blue vanishes on dark cyberpunk backgrounds)."""
+    """Render report text as HTML: basic markdown (headers, bullets, bold) +
+    clickable URLs. Safe for setHtml()."""
     accent = accent or PALETTE.get("accent", "#00FF41")
     text = text or ""
-    pos, out = 0, []
-    for m in _URL_RE.finditer(text):
+    lines = text.split("\n")
+    out = []
+    for line in lines:
+        # headers
+        m = re.match(r"^(#{1,3})\s+(.*)$", line)
+        if m:
+            size = {1: "13pt", 2: "11.5pt", 3: "10.5pt"}[len(m.group(1))]
+            out.append("<div style=\"font-weight:bold; font-size:%s; color:%s; "
+                       "margin:8px 0 3px 0;\">%s</div>" % (size, accent,
+                       html.escape(m.group(2))))
+            continue
+        # bullets
+        m = re.match(r"^\s*[-*]\s+(.*)$", line)
+        if m:
+            body = _inline_md(html.escape(m.group(1)))
+            out.append("<div style=\"margin:2px 0 2px 16px; text-indent:-12px;\">"
+                       "\u2022 %s</div>" % _linkify(body, accent, include_previews))
+            continue
+        # numbered
+        m = re.match(r"^\s*(\d+)\.\s+(.*)$", line)
+        if m:
+            body = _inline_md(html.escape(m.group(2)))
+            out.append("<div style=\"margin:2px 0 2px 16px; text-indent:-16px;\">"
+                       "%s. %s</div>" % (m.group(1),
+                       _linkify(body, accent, include_previews)))
+            continue
+        # blank line
+        if not line.strip():
+            out.append("<br>")
+            continue
+        body = _inline_md(html.escape(line))
+        out.append(_linkify(body, accent, include_previews))
+    return "<br>".join(out)
+
+
+def _inline_md(s):
+    return re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", s)
+
+
+def _linkify(s, accent, include_previews):
+    def repl(m):
         url = m.group(0)
         trail = ""
         while url and url[-1] in _TRAILING_PUNCT:
-            # keep balanced-paren case simple: never trim the only '(' context
             trail = url[-1] + trail
             url = url[:-1]
         if not url:
-            continue
-        out.append(html.escape(text[pos:m.start()]).replace("\n", "<br>"))
-        out.append(_link_html(url, accent, include_previews))
-        if trail:
-            out.append(html.escape(trail))
-        pos = m.end()
-    if not out:
-        return html.escape(text).replace("\n", "<br>")
-    out.append(html.escape(text[pos:]).replace("\n", "<br>"))
-    return "".join(out)
+            return m.group(0)
+        return _link_html(url, accent, include_previews) + html.escape(trail)
+    return _URL_RE.sub(repl, s)
 
 
 class FeedEntry(QFrame):
@@ -828,21 +856,51 @@ class FeedEntry(QFrame):
         self.cap = QLabel(title)
         self.cap.setObjectName("sectionHeader")
         hlay.addWidget(self.cap, 1)
+
+        self.popout_btn = QToolButton()
+        self.popout_btn.setAutoRaise(True)
+        self.popout_btn.setText("\u29c9")
+        self.popout_btn.setToolTip("Open in large window")
+        self.popout_btn.clicked.connect(self._popout)
+        hlay.addWidget(self.popout_btn)
+
+        self.del_btn = QToolButton()
+        self.del_btn.setAutoRaise(True)
+        self.del_btn.setText("\u00d7")
+        self.del_btn.setToolTip("Delete this report")
+        self.del_btn.clicked.connect(self._request_delete)
+        hlay.addWidget(self.del_btn)
+
         lay.addWidget(header_row)
 
         self.body = QTextBrowser()
         self.body.setOpenExternalLinks(True)
         self.body.setReadOnly(True)
-        # Escape before embedding in HTML: report text and titles can contain
-        # <, > or & characters which used to corrupt the rendered entry.
-        safe_title = html.escape(title)
         body_html = render_report_html(self._body_text,
                                        include_previews=include_previews)
-        self.body.setHtml("<b>%s</b><hr>%s" % (safe_title, body_html))
+        self.body.setHtml("<b>%s</b><hr>%s" % (html.escape(title), body_html))
         self.body.setObjectName("entryBody")
         self.body.setMinimumHeight(120)
         self.body.setVisible(False)
         lay.addWidget(self.body)
+
+    def _request_delete(self):
+        parent = self.parent()
+        while parent is not None and not hasattr(parent, "remove_feed_entry"):
+            parent = parent.parent()
+        if parent is not None:
+            parent.remove_feed_entry(self)
+
+    def _popout(self):
+        dlg = QDialog(self)
+        dlg.setWindowTitle(self.cap.text())
+        dlg.resize(900, 700)
+        v = QVBoxLayout(dlg)
+        b = QTextBrowser()
+        b.setOpenExternalLinks(True)
+        b.setHtml(self.body.toHtml())
+        v.addWidget(b)
+        dlg.exec()
 
         self.toggle_btn.clicked.connect(self._on_toggle)
 
@@ -2870,6 +2928,14 @@ class SentinelWindow(QMainWindow):
             scrollbar.setValue(scrollbar.maximum())
         except Exception as exc:
             print("History error: %s" % exc)
+
+    def remove_feed_entry(self, entry):
+        if entry in self.feed_entries:
+            self.feed_entries.remove(entry)
+        self.history_layout.removeWidget(entry)
+        entry.deleteLater()
+        self.feed_count_label.setText("%d entries" % len(self.feed_entries))
+        self.feed_placeholder.setVisible(not self.feed_entries)
 
     def clear_history(self):
         for entry in self.feed_entries:

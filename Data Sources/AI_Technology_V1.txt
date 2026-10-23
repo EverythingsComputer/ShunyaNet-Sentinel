@@ -1,0 +1,15 @@
+# AI & Technology - Sentinel data source list
+# One URL per line. Lines starting with # are comments.
+
+# Core AI news
+https://news.google.com/rss/search?q=%22artificial+intelligence%22+OR+%22large+language+model%22+OR+OpenAI+OR+Anthropic+OR+Gemini&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=AI+regulation+OR+%22AI+safety%22+OR+%22AI+act%22&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22chip+shortage%22+OR+semiconductor+OR+TSMC+OR+Nvidia&hl=en-US&gl=US&ceid=US:en
+
+# Tech industry / big tech
+https://news.google.com/rss/search?q=Apple+OR+Microsoft+OR+Google+OR+Meta+OR+Amazon+tech&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=cybersecurity+OR+%22data+breach%22+OR+ransomware&hl=en-US&gl=US&ceid=US:en
+
+# Wires
+https://feeds.bbci.co.uk/news/technology/rss.xml
+https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml

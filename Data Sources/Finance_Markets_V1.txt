@@ -1,0 +1,6 @@
+# Finance & Markets - Sentinel data source list
+https://news.google.com/rss/search?q=stock+market+OR+inflation+OR+interest+rates+OR+recession&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=banking+crisis+OR+%22financial+stability%22+OR+default&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=cryptocurrency+OR+bitcoin+OR+ethereum+OR+%22crypto+regulation%22&hl=en-US&gl=US&ceid=US:en
+https://feeds.bbci.co.uk/news/business/rss.xml
+https://rss.nytimes.com/services/xml/rss/nyt/Business.xml

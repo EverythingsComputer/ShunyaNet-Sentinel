@@ -1,0 +1,5 @@
+# Cybersecurity - Sentinel data source list
+https://news.google.com/rss/search?q=cybersecurity+OR+%22data+breach%22+OR+ransomware+OR+phishing&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22zero-day%22+OR+vulnerability+OR+CVE+OR+exploit&hl=en-US&gl=US&ceid=US:en
+https://news.google.com/rss/search?q=%22critical+infrastructure%22+cyber+attack+OR+disruption&hl=en-US&gl=US&ceid=US:en
+https://feeds.bbci.co.uk/news/technology/rss.xml
