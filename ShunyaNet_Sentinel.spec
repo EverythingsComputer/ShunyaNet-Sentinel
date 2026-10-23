@@ -43,7 +43,15 @@ VERSION = _version()
 
 def _strip_flag():
     """Drop debug symbols from the bundle (set SENTINEL_STRIP=0 to keep a
-    symbolized build when debugging a crash)."""
+    symbolized build when debugging a crash).
+
+    Never on Windows: `strip` rewrites PE binaries in a way that leaves them
+    unloadable, and the result is not a build failure but an exe that dies before
+    any of our code runs - "Failed to load Python DLL ... LoadLibrary: Invalid
+    access to memory location", shown as a modal Error dialog on a headless runner.
+    """
+    if sys.platform == "win32":
+        return False
     return os.environ.get("SENTINEL_STRIP", "1").strip() not in ("", "0")
 
 
