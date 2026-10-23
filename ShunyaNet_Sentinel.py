@@ -63,7 +63,7 @@ import threading
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 
-APP_VERSION = "3.3.0"
+APP_VERSION = "3.3.1"
 
 import requests
 import feedparser

@@ -13,7 +13,7 @@ saved alert or summary:
 ```json
 {
   "app": "ShunyaNet Sentinel",
-  "version": "3.3.0",
+  "version": "3.3.1",
   "updated": "2026-10-18T03:44:33",
   "latest_report_type": "ALERT",
   "latest_report_path": "/path/to/Report_Output/ALERT_0344_18-10-26_1.txt",
