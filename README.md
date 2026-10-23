@@ -219,18 +219,6 @@ Suggestions:
 
 ------------------------------------------------------------------------
 
-# Tests
-
-Ships with an isolated test suite that never touches your settings or data:
-
-    python3 tests/cli_run.py tests/smoke.py     # boot, dialogs, wizard, close
-    python3 tests/cli_run.py tests/e2e.py       # full pipeline vs mock LLM/RSS/notifiers
-    python3 tests/cli_run.py tests/restart.py   # persistence + legacy migration
-
-See [tests/README.md](tests/README.md).
-
-------------------------------------------------------------------------
-
 # Status
 
 Beta (v3.3)
