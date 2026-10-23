@@ -74,26 +74,11 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
+    # Only non-Qt leftovers. Trimming Qt modules here looks tempting and saves
+    # almost nothing after stripping, but it can remove a DLL that a plugin the app
+    # DOES use loads at runtime - which on Windows means a silent loader failure.
     excludes=["tkinter", "matplotlib", "numpy", "scipy", "PyQt5", "PyQt6",
-              "unittest",
-              # Qt modules this app never imports; dropping them roughly halves
-              # the download. The release smoke test boots the real bundle, so a
-              # wrong exclusion fails CI instead of shipping broken.
-              "PySide6.QtNetwork", "PySide6.QtQml", "PySide6.QtQuick",
-              "PySide6.QtQuickWidgets", "PySide6.QtQuick3D", "PySide6.QtDesigner",
-              "PySide6.QtUiTools", "PySide6.QtHelp", "PySide6.QtSql",
-              "PySide6.QtTest", "PySide6.QtSvg", "PySide6.QtSvgWidgets",
-              "PySide6.QtPdf", "PySide6.QtPdfWidgets", "PySide6.QtCharts",
-              "PySide6.QtDataVisualization", "PySide6.QtGraphs",
-              "PySide6.QtMultimedia", "PySide6.QtMultimediaWidgets",
-              "PySide6.QtWebChannel", "PySide6.QtWebEngineCore",
-              "PySide6.QtWebEngineWidgets", "PySide6.QtWebSockets",
-              "PySide6.QtBluetooth", "PySide6.QtNfc", "PySide6.QtSerialPort",
-              "PySide6.QtSerialBus", "PySide6.QtSensors", "PySide6.QtPositioning",
-              "PySide6.QtLocation", "PySide6.QtRemoteObjects", "PySide6.QtScxml",
-              "PySide6.QtTextToSpeech", "PySide6.QtHttpServer",
-              "PySide6.QtVirtualKeyboard", "PySide6.QtQuickTest",
-              "PySide6.QtOpenGL", "PySide6.QtOpenGLWidgets"],
+              "unittest"],
     noarchive=False,
 )
 

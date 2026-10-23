@@ -197,20 +197,20 @@ jobs:
               echo "MISSING BUNDLE BINARY: $BIN"
               rc=127
             elif [ "$RUNNER_OS" = "Windows" ]; then
-              # A GUI-subsystem exe has to be awaited explicitly and killed if it
-              # never returns, and its console output only exists if redirected.
-              # Paths must be converted: a POSIX path handed to a native Windows
-              # process points nowhere, so the report would silently go missing.
-              WIN_BIN=$(cygpath -w "$BIN")
-              WIN_HOME=$(cygpath -w "$SENTINEL_HOME")
-              WIN_SMOKE=$(cygpath -w "$SENTINEL_SMOKE_FILE")
-              WIN_OUT=$(cygpath -w "$RUNNER_TEMP/smoke-stdout.log")
-              WIN_ERR=$(cygpath -w "$RUNNER_TEMP/smoke-stderr.log")
-              OUT_LOG="$RUNNER_TEMP/smoke-stdout.log"
-              ERR_LOG="$RUNNER_TEMP/smoke-stderr.log"
-              powershell -NoProfile -Command "\$env:SENTINEL_HOME='$WIN_HOME'; \$env:SENTINEL_SMOKE_FILE='$WIN_SMOKE'; \$p = Start-Process -FilePath '$WIN_BIN' -ArgumentList '--smoke-test' -PassThru -WindowStyle Hidden -RedirectStandardOutput '$WIN_OUT' -RedirectStandardError '$WIN_ERR'; if (-not \$p.WaitForExit($((SMOKE_LIMIT * 1000)))) { \$p.Kill(); Write-Output 'KILLED after ${SMOKE_LIMIT}s'; exit 2 }; exit \$p.ExitCode" 2> /dev/null || rc=$?
-              [ -f "$OUT_LOG" ] && { echo "--- exe stdout ---"; cat "$OUT_LOG"; }
-              [ -f "$ERR_LOG" ] && { echo "--- exe stderr ---"; cat "$ERR_LOG"; }
+              # What is actually in the bundle, before we try to run it: a missing
+              # Qt platform plugin or core DLL means the loader will fail.
+              echo "--- bundle contents ---"
+              ls -la "$(dirname "$BIN")" | head -10
+              for f in _internal/PySide6/Qt/plugins/platforms/qwindows.dll \
+                       _internal/PySide6/Qt6Core.dll _internal/shiboken6; do
+                if [ -e "dist/$APP_NAME/$f" ]; then echo "  present: $f"; else echo "  MISSING: $f"; fi
+              done
+              powershell -NoProfile -ExecutionPolicy Bypass -File packaging/smoke_windows.ps1 \
+                -Exe "$(cygpath -w "$BIN")" -SmokeLimitSec "$SMOKE_LIMIT" \
+                -LogDir "$(cygpath -w "$RUNNER_TEMP")" \
+                -SentinelHome "$(cygpath -w "$SENTINEL_HOME")" \
+                -SentinelSmokeFile "$(cygpath -w "$SENTINEL_SMOKE_FILE")"
+              rc=$?
             else
               "$BIN" --smoke-test >/dev/null 2>&1 &
               pid=$!
