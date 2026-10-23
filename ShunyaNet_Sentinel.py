@@ -4063,10 +4063,37 @@ def _cli_shortcuts():
     if "--smoke-test" not in sys.argv:
         return None
 
-    # Hard wall-clock bound: if Qt init ever wedges (odd GPU/driver on a build
-    # runner), kill the process instead of holding a CI job until it times out.
+    # Progress goes to the smoke file as it happens. A wedged process gets killed
+    # from outside, so the partial file is what tells you which phase stopped.
+    log_path = os.environ.get("SENTINEL_SMOKE_FILE", "").strip()
+
+    def note(text):
+        _emit("[smoke] " + text)
+        if not log_path:
+            return
+        try:
+            with open(log_path, "a", encoding="utf-8") as fh:
+                fh.write("[smoke] %s\n" % text)
+                fh.flush()
+                os.fsync(fh.fileno())
+        except Exception:
+            pass
+
+    if log_path:
+        try:
+            os.remove(log_path)
+        except OSError:
+            pass
+    note("start v%s frozen=%s python=%s" % (APP_VERSION,
+         bool(getattr(sys, "frozen", False)), sys.version.split()[0]))
+    note("app_dir %s" % APP_DIR)
+
+    # Hard wall-clock bound. Only a backstop: a main thread blocked inside C code
+    # can hold the GIL and starve this thread, so CI also enforces a timeout from
+    # outside the process.
     def _watchdog():
         time.sleep(float(os.environ.get("SENTINEL_SMOKE_TIMEOUT", "120")))
+        note("WATCHDOG firing - forcing exit")
         os._exit(3)
 
     threading.Thread(target=_watchdog, daemon=True).start()
@@ -4084,12 +4111,17 @@ def _cli_shortcuts():
     QMessageBox.information = staticmethod(lambda *a, **k: QMessageBox.Ok)
     QMessageBox.warning = staticmethod(lambda *a, **k: QMessageBox.Ok)
     QMessageBox.question = staticmethod(lambda *a, **k: QMessageBox.No)
+    QMessageBox.critical = staticmethod(lambda *a, **k: QMessageBox.Ok)
+    QMessageBox.about = staticmethod(lambda *a, **k: QMessageBox.Ok)
     try:
+        note("creating QApplication")
         app = QApplication(sys.argv[:1])
         global BASE_FONT_FAMILY
         BASE_FONT_FAMILY = _pick_monospace_font()
+        note("constructing main window")
         window = SentinelWindow()
         window.show()
+        note("window shown")
         # stop every timer (auto-fetch countdown, rain) so a smoke run never
         # reaches out to the network or leaves a worker thread behind
         for t in window.findChildren(QTimer):
@@ -4100,6 +4132,7 @@ def _cli_shortcuts():
         for _ in range(25):            # let timers/threads settle
             app.processEvents()
             time.sleep(0.04)
+        note("settled; checking state")
 
         check("window", bool(window.windowTitle()), repr(window.windowTitle()))
         check("version", APP_VERSION not in ("", "0"), "v%s" % APP_VERSION)
@@ -4135,10 +4168,9 @@ def _cli_shortcuts():
     lines += ["  FAIL " + l for l in failed]
     text = "\n".join(lines)
     _emit(text)
-    log_path = os.environ.get("SENTINEL_SMOKE_FILE", "").strip()
     if log_path:
         try:
-            with open(log_path, "w", encoding="utf-8") as fh:
+            with open(log_path, "a", encoding="utf-8") as fh:
                 fh.write(text + "\n")
                 fh.flush()
                 os.fsync(fh.fileno())

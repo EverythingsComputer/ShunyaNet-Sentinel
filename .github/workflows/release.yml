@@ -16,6 +16,8 @@ permissions:
 env:
   APP_NAME: ShunyaNetSentinel
   PYTHON_VERSION: "3.12"
+  # Hard wall for booting the built bundle, enforced from outside the process.
+  SMOKE_LIMIT: "300"
 
 jobs:
   build:
@@ -65,15 +67,15 @@ jobs:
           export PATH="$HOME/.local/bin:$PATH"
           command -v uv || curl -fsSL https://astral.sh/uv/install.sh | sh
           uv python install "${PYTHON_VERSION}"
-          # --seed is not used: uv venvs carry no pip, and installing with
-          # `uv pip` below is faster and does not depend on ensurepip.
+          # No --seed: a uv venv carries no pip, and installing with `uv pip`
+          # below is faster and does not depend on ensurepip.
           uv venv --python "${PYTHON_VERSION}" .venv-standalone
           echo "VENV=$PWD/.venv-standalone" >> "$GITHUB_ENV"
 
       - name: Install build dependencies
         shell: bash
         env:
-          DIAG: ${{ runner.temp }}/install-log.txt
+          DIAG: ${{ runner.temp }}/build-log.txt
         run: |
           # NOTE: GITHUB_ENV only reaches LATER steps, so pick the interpreter in a
           # plain shell variable and use that here; export it for the next steps.
@@ -96,7 +98,7 @@ jobs:
           fi
           echo "PY=$PY_BIN" >> "$GITHUB_ENV"
           # Fail loudly here, not six minutes later inside PyInstaller.
-          { "$PY_BIN" -c "import sys, PySide6, feedparser, requests, PyInstaller; print('interpreter:', sys.version); print('PySide6 ok, PyInstaller', PyInstaller.__version__)" ; } 2>&1 | tee -a "$DIAG"
+          { "$PY_BIN" -c "import sys, PySide6, feedparser, requests, PyInstaller; print('interpreter:', sys.version); print('PySide6 ok, PyInstaller', PyInstaller.__version__)"; } 2>&1 | tee -a "$DIAG"
           test "${PIPESTATUS[0]}" -eq 0
 
       - name: Install Qt runtime libraries (Linux, for the smoke test)
@@ -114,8 +116,13 @@ jobs:
 
       - name: Build with PyInstaller
         shell: bash
+        env:
+          DIAG: ${{ runner.temp }}/build-log.txt
         run: |
-          "$PY" -m PyInstaller --noconfirm --log-level INFO --distpath dist --workpath build ShunyaNet_Sentinel.spec
+          { echo "=== pyinstaller ==="
+            "$PY" -m PyInstaller --noconfirm --log-level INFO --distpath dist --workpath build ShunyaNet_Sentinel.spec
+          } 2>&1 | tee -a "$DIAG"
+          test "${PIPESTATUS[0]}" -eq 0
 
       # ---------- macOS: seal the .app (ad-hoc, no certificate needed) ----------
       # Without a signature seal Apple silicon reports "app is damaged". Ad-hoc
@@ -123,54 +130,76 @@ jobs:
       - name: Code seal the .app (macOS)
         if: runner.os == 'macOS'
         shell: bash
+        env:
+          DIAG: ${{ runner.temp }}/build-log.txt
         run: |
           APP="dist/$APP_NAME/$APP_NAME.app"
-          xattr -cr "$APP"
-          codesign --force --deep --sign - "$APP" 2>codesign.err || true
-          if [ -s codesign.err ]; then cat codesign.err; fi
-          if [ ! -d "$APP/Contents/_CodeSignature" ]; then
-            echo "::error::macOS code seal missing (no Contents/_CodeSignature) - refusing to ship"
-            exit 1
-          fi
-          if ! codesign --verify --deep --strict "$APP"; then
-            echo "::error::codesign verification failed - refusing to ship"
-            exit 1
-          fi
-          echo "ad-hoc seal verified"
+          { echo "=== codesign ==="
+            xattr -cr "$APP"
+            codesign --force --deep --sign - "$APP" 2>&1
+            codesign -dv --verbose=4 "$APP" 2>&1
+            if [ ! -d "$APP/Contents/_CodeSignature" ]; then
+              echo "SEAL_MISSING: no Contents/_CodeSignature"
+              exit 1
+            fi
+            if ! codesign --verify --deep --strict "$APP" 2>&1; then
+              echo "SEAL_VERIFY_FAILED"
+              exit 1
+            fi
+            echo "ad-hoc seal verified"
+          } 2>&1 | tee -a "$DIAG"
+          test "${PIPESTATUS[0]}" -eq 0
 
       # ---------- release gate: run the real bundle ----------
+      # The time limit is enforced from OUTSIDE the process: a Qt call blocked in
+      # native code keeps the GIL, so an in-process watchdog thread cannot fire.
       - name: Smoke test the built bundle
         shell: bash
+        env:
+          DIAG: ${{ runner.temp }}/build-log.txt
+          PLATFORM: ${{ matrix.platform }}
         run: |
+          set +e
           case "$RUNNER_OS" in
-            Windows) BIN="dist/$APP_NAME/$APP_NAME.exe" ;;
-            macOS)   BIN="dist/$APP_NAME/$APP_NAME.app/Contents/MacOS/$APP_NAME" ;;
-            *)       BIN="dist/$APP_NAME/$APP_NAME" ;;
+            Windows) BIN="$PWD/dist/$APP_NAME/$APP_NAME.exe" ;;
+            macOS)   BIN="$PWD/dist/$APP_NAME/$APP_NAME.app/Contents/MacOS/$APP_NAME" ;;
+            *)       BIN="$PWD/dist/$APP_NAME/$APP_NAME" ;;
           esac
-          if [ ! -f "$BIN" ]; then
-            echo "::error::expected bundle binary not found: $BIN"
-            exit 1
-          fi
           export SENTINEL_HOME="$RUNNER_TEMP/sentinel-smoke-home"
           export SENTINEL_SMOKE_FILE="$RUNNER_TEMP/smoke.txt"
           rm -rf "$SENTINEL_HOME"; mkdir -p "$SENTINEL_HOME"
-          set +e
-          "$BIN" --smoke-test > smoke_stdout.log 2>&1
-          rc=$?
-          set -e
-          echo "--- smoke exit: $rc ---"
-          cat smoke_stdout.log || true
-          if [ -f "$SENTINEL_SMOKE_FILE" ]; then
-            echo "--- smoke report ---"
-            cat "$SENTINEL_SMOKE_FILE"
-          else
-            echo "--- no smoke report written ---"
-          fi
-          if [ "$rc" -ne 0 ] || [ ! -f "$SENTINEL_SMOKE_FILE" ] || ! grep -q "SMOKE OK" "$SENTINEL_SMOKE_FILE"; then
-            echo "::error::SMOKE_FAILED on ${{ matrix.platform }} (exit $rc) - see the log above"
+          RCF="$RUNNER_TEMP/smoke-rc"
+          echo 1 > "$RCF"
+          { echo "=== smoke: $BIN (limit ${SMOKE_LIMIT}s) ==="
+            if [ ! -f "$BIN" ]; then
+              echo "MISSING BUNDLE BINARY: $BIN"
+              rc=127
+            elif [ "$RUNNER_OS" = "Windows" ]; then
+              # A GUI-subsystem exe has to be awaited explicitly and killed if it
+              # never returns - Start-Process does both.
+              WIN_BIN=$(cygpath -w "$BIN")
+              powershell -NoProfile -Command "\$p = Start-Process -FilePath '$WIN_BIN' -ArgumentList '--smoke-test' -PassThru; if (-not \$p.WaitForExit($((SMOKE_LIMIT * 1000)))) { \$p.Kill(); Write-Output 'KILLED after ${SMOKE_LIMIT}s'; exit 2 }; exit \$p.ExitCode"
+              rc=$?
+            else
+              "$BIN" --smoke-test >/dev/null 2>&1 &
+              pid=$!
+              ( sleep "${SMOKE_LIMIT}"; kill -9 "$pid" 2>/dev/null ) &
+              watcher=$!
+              wait "$pid"; rc=$?
+              kill "$watcher" 2>/dev/null
+            fi
+            echo "--- smoke exit: $rc ---"
+            if [ -f "$SENTINEL_SMOKE_FILE" ]; then cat "$SENTINEL_SMOKE_FILE"; else echo "NO SMOKE FILE WRITTEN"; fi
+            echo "$rc" > "$RCF"
+          } 2>&1 | tee -a "$DIAG"
+          # a variable set inside the pipeline above does not survive it, so the
+          # exit status is handed over through a file
+          rc=$(cat "$RCF" 2>/dev/null || echo 99)
+          if [ "$rc" -ne 0 ] || ! grep -q "SMOKE OK" "$SENTINEL_SMOKE_FILE" 2>/dev/null; then
+            echo "::error::SMOKE_FAILED on $PLATFORM (exit $rc) - build-log.txt is attached to the release"
             exit 1
           fi
-          echo "Bundle boots and reports SMOKE OK on ${{ matrix.platform }}"
+          echo "Bundle boots and reports SMOKE OK on $PLATFORM"
 
       # ---------- package ----------
       - name: Zip the bundle
@@ -183,45 +212,50 @@ jobs:
           if [ "$RUNNER_OS" = "macOS" ]; then
             ditto -c -k --sequesterRsrc "dist/$APP_NAME" "$out.zip"
           elif [ "$RUNNER_OS" = "Windows" ]; then
-            powershell -NoProfile -Command "Compress-Archive -Path dist\$env:APP_NAME\* -DestinationPath $out.zip"
+            powershell -NoProfile -Command "Compress-Archive -Path dist\\$env:APP_NAME\\* -DestinationPath $out.zip"
           else
             (cd dist && zip -qry "../$out.zip" "$APP_NAME")
           fi
           if command -v sha256sum >/dev/null 2>&1; then
             sha256sum "$out.zip" > "$out.zip.sha256"
           else
-            certutil -hashfile "$out.zip" SHA256 > "$out.zip.sha256"
+            certutil -hashfile "$out.zip" SHA256 | head -3 > "$out.zip.sha256"
           fi
           ls -la "$out.zip" "$out.zip.sha256"
 
-      # A failed job's log is not readable without repo admin rights, so on
-      # failure publish our own copy of the install log as a release asset -
-      # anyone can then read why the build broke.
-      - name: Publish build diagnostics (failures only)
-        if: failure() && startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        continue-on-error: true
-        with:
-          tag_name: ${{ github.ref_name }}
-          files: |
-            ${{ runner.temp }}/install-log.txt
-          overwrite_existing: true
-
-      - name: Upload to the Release (tag pushes only)
+      # ---------- publish ----------
+      - name: Publish to the Release (tag pushes only)
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            ${{ env.APP_NAME }}-${{ steps.ver.outputs.version }}-${{ matrix.platform }}.zip
-            ${{ env.APP_NAME }}-${{ steps.ver.outputs.version }}-${{ matrix.platform }}.zip.sha256
-          fail_on_unmatched_files: true
-          # re-running a release must replace its zips, not 422 on duplicates
-          overwrite_existing: true
-          generate_release_notes: true
-          body: |
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.ver.outputs.version }}
+          BODY: |
             Portable builds: unzip anywhere and run. Nothing is installed, and nothing leaves your machine except the RSS feeds you load and any notifications you configure.
 
-            These builds are not code-signed with a purchased certificate yet. macOS shows a one-time "unverified developer" prompt (right-click the app, then Open); Windows may show SmartScreen ("More info" then "Run anyway"). The README explains why, and how to verify a download against the .sha256 file beside it.
+            These builds are not code-signed with a purchased certificate yet. macOS shows a one-time "unverified developer" prompt (right-click the app, then Open); Windows may show SmartScreen ("More info" then "Run anyway"). Check any download against the .sha256 file published beside it: `sha256sum -c <file>.zip.sha256`.
+        run: |
+          chmod +x packaging/gh_release.sh
+          out="$APP_NAME-v${VERSION}-${PLATFORM}"
+          ./packaging/gh_release.sh upload "$out.zip" || exit 1
+          ./packaging/gh_release.sh upload "$out.zip.sha256" || exit 1
+
+      # A failed job's own log is readable only by repo admins, so publish our copy
+      # of the build log - anyone can then see why a tag build broke.
+      - name: Publish build diagnostics (failures only)
+        if: failure() && startsWith(github.ref, 'refs/tags/v')
+        continue-on-error: true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          chmod +x packaging/gh_release.sh
+          diag="${RUNNER_TEMP}/build-log.txt"
+          if [ -f "${RUNNER_TEMP}/smoke.txt" ]; then
+            { echo; echo "===== smoke ====="; cat "${RUNNER_TEMP}/smoke.txt"; } >> "$diag"
+          fi
+          PY="$PY" ./packaging/gh_release.sh upload "$diag" "build-log-${PLATFORM}.txt"
 
       - name: Upload as workflow artifact (manual runs)
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
