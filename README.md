@@ -253,7 +253,7 @@ Only needed if you want a build for a platform without a release, or you want to
     python packaging/make_icons.py                      # builds .ico / .icns from assets/app_icon.png
     pyinstaller --noconfirm ShunyaNet_Sentinel.spec
 
-Output lands in `dist/ShunyaNetSentinel/` (one folder, roughly 180 MB unpacked / 75 MB zipped — PySide6 drags the Qt framework along; debug symbols are stripped by default, set `SENTINEL_STRIP=0` if you need them for a crash report). macOS produces `ShunyaNetSentinel.app`; seal it for local use with `codesign --force --deep --sign - dist/ShunyaNetSentinel/ShunyaNetSentinel.app`. A build machine must match the target platform: Windows builds must happen on Windows, and so on. The workflow in `.github/workflows/release.yml` does exactly this on four runners whenever you push a `v*` tag, refuses to publish if any bundle fails its smoke test, and attaches the zips to the Release.
+Output lands in `dist/ShunyaNetSentinel/` — on macOS also as `dist/ShunyaNetSentinel.app`, which is the thing to zip and ship (one folder, roughly 180 MB unpacked / 75 MB zipped — PySide6 drags the Qt framework along; debug symbols are stripped by default, set `SENTINEL_STRIP=0` if you need them for a crash report). macOS produces `ShunyaNetSentinel.app`; seal it for local use with `codesign --force --deep --sign - dist/ShunyaNetSentinel/ShunyaNetSentinel.app`. A build machine must match the target platform: Windows builds must happen on Windows, and so on. The workflow in `.github/workflows/release.yml` does exactly this on four runners whenever you push a `v*` tag, refuses to publish if any bundle fails its smoke test, and attaches the zips to the Release.
 
 ------------------------------------------------------------------------
 

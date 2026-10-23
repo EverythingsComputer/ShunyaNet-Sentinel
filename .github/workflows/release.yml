@@ -124,6 +124,32 @@ jobs:
           } 2>&1 | tee -a "$DIAG"
           test "${PIPESTATUS[0]}" -eq 0
 
+      # PyInstaller writes the .app next to the one-folder tree on macOS, so later
+      # steps ask this where things are instead of guessing the layout twice.
+      - name: Locate built bundle
+        shell: bash
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          # GITHUB_ENV only reaches LATER steps, so validate the local values here.
+          if [ -d "dist/$APP_NAME.app/Contents/MacOS" ]; then
+            bundle="dist/$APP_NAME.app"
+            binpath="$bundle/Contents/MacOS/$APP_NAME"
+          else
+            bundle=""
+            if [ "$RUNNER_OS" = "Windows" ]; then
+              binpath="dist/$APP_NAME/$APP_NAME.exe"
+            else
+              binpath="dist/$APP_NAME/$APP_NAME"
+            fi
+          fi
+          { echo "APP_BUNDLE=$bundle"
+            echo "BUNDLE_BIN=$binpath"
+            echo "ASSET=$APP_NAME-v${VERSION}-${PLATFORM}.zip"; } >> "$GITHUB_ENV"
+          echo "app bundle: ${bundle:-none}  binary: $binpath"
+          test -f "$binpath" || { echo "::error::built binary missing at $binpath"; ls -laR dist | head -40; exit 1; }
+
       # ---------- macOS: seal the .app (ad-hoc, no certificate needed) ----------
       # Without a signature seal Apple silicon reports "app is damaged". Ad-hoc
       # signing needs no account; users still approve it once in Gatekeeper.
@@ -133,8 +159,8 @@ jobs:
         env:
           DIAG: ${{ runner.temp }}/build-log.txt
         run: |
-          APP="dist/$APP_NAME/$APP_NAME.app"
-          { echo "=== codesign ==="
+          { echo "=== codesign ($APP_BUNDLE) ==="
+            APP="$APP_BUNDLE"
             xattr -cr "$APP"
             codesign --force --deep --sign - "$APP" 2>&1
             codesign -dv --verbose=4 "$APP" 2>&1
@@ -160,11 +186,7 @@ jobs:
           PLATFORM: ${{ matrix.platform }}
         run: |
           set +e
-          case "$RUNNER_OS" in
-            Windows) BIN="$PWD/dist/$APP_NAME/$APP_NAME.exe" ;;
-            macOS)   BIN="$PWD/dist/$APP_NAME/$APP_NAME.app/Contents/MacOS/$APP_NAME" ;;
-            *)       BIN="$PWD/dist/$APP_NAME/$APP_NAME" ;;
-          esac
+          BIN="$PWD/$BUNDLE_BIN"
           export SENTINEL_HOME="$RUNNER_TEMP/sentinel-smoke-home"
           export SENTINEL_SMOKE_FILE="$RUNNER_TEMP/smoke.txt"
           rm -rf "$SENTINEL_HOME"; mkdir -p "$SENTINEL_HOME"
@@ -207,21 +229,27 @@ jobs:
         env:
           VERSION: ${{ steps.ver.outputs.version }}
           PLATFORM: ${{ matrix.platform }}
+          DIAG: ${{ runner.temp }}/build-log.txt
         run: |
           out="$APP_NAME-v${VERSION}-${PLATFORM}"
-          if [ "$RUNNER_OS" = "macOS" ]; then
-            ditto -c -k --sequesterRsrc "dist/$APP_NAME" "$out.zip"
-          elif [ "$RUNNER_OS" = "Windows" ]; then
-            powershell -NoProfile -Command "Compress-Archive -Path dist\\$env:APP_NAME\\* -DestinationPath $out.zip"
-          else
-            (cd dist && zip -qry "../$out.zip" "$APP_NAME")
-          fi
-          if command -v sha256sum >/dev/null 2>&1; then
-            sha256sum "$out.zip" > "$out.zip.sha256"
-          else
-            certutil -hashfile "$out.zip" SHA256 | head -3 > "$out.zip.sha256"
-          fi
-          ls -la "$out.zip" "$out.zip.sha256"
+          { echo "=== zip ==="
+            if [ -n "$APP_BUNDLE" ]; then
+              # ditto keeps executable bits and the code seal inside the .app
+              ditto -c -k --sequesterRsrc "$APP_BUNDLE" "$out.zip"
+            elif [ "$RUNNER_OS" = "Windows" ]; then
+              powershell -NoProfile -Command "Compress-Archive -Path dist\$env:APP_NAME\* -DestinationPath $out.zip"
+            else
+              (cd dist && zip -qry "../$out.zip" "$APP_NAME")
+            fi
+            if command -v sha256sum >/dev/null 2>&1; then
+              sha256sum "$out.zip" > "$out.zip.sha256"
+            else
+              certutil -hashfile "$out.zip" SHA256 | head -3 > "$out.zip.sha256"
+            fi
+            ls -la "$out.zip" "$out.zip.sha256"
+            echo "sha256: $(cut -d' ' -f1 "$out.zip.sha256" 2>/dev/null || true)"
+          } 2>&1 | tee -a "$DIAG"
+          test "${PIPESTATUS[0]}" -eq 0
 
       # ---------- publish ----------
       - name: Publish to the Release (tag pushes only)
@@ -234,11 +262,16 @@ jobs:
             Portable builds: unzip anywhere and run. Nothing is installed, and nothing leaves your machine except the RSS feeds you load and any notifications you configure.
 
             These builds are not code-signed with a purchased certificate yet. macOS shows a one-time "unverified developer" prompt (right-click the app, then Open); Windows may show SmartScreen ("More info" then "Run anyway"). Check any download against the .sha256 file published beside it: `sha256sum -c <file>.zip.sha256`.
+        env:
+          DIAG: ${{ runner.temp }}/build-log.txt
         run: |
           chmod +x packaging/gh_release.sh
           out="$APP_NAME-v${VERSION}-${PLATFORM}"
-          ./packaging/gh_release.sh upload "$out.zip" || exit 1
-          ./packaging/gh_release.sh upload "$out.zip.sha256" || exit 1
+          { echo "=== publish ==="
+            ./packaging/gh_release.sh upload "$out.zip" \
+              && ./packaging/gh_release.sh upload "$out.zip.sha256"
+          } 2>&1 | tee -a "$DIAG"
+          test "${PIPESTATUS[0]}" -eq 0
 
       # A failed job's own log is readable only by repo admins, so publish our copy
       # of the build log - anyone can then see why a tag build broke.
@@ -249,13 +282,16 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PLATFORM: ${{ matrix.platform }}
+        env:
+          DIAG: ${{ runner.temp }}/build-log.txt
         run: |
           chmod +x packaging/gh_release.sh
-          diag="${RUNNER_TEMP}/build-log.txt"
+          diag="$DIAG"
           if [ -f "${RUNNER_TEMP}/smoke.txt" ]; then
             { echo; echo "===== smoke ====="; cat "${RUNNER_TEMP}/smoke.txt"; } >> "$diag"
           fi
-          PY="$PY" ./packaging/gh_release.sh upload "$diag" "build-log-${PLATFORM}.txt"
+          { echo; echo "===== dist listing ====="; ls -la dist 2>/dev/null; } >> "$diag" || true
+          PY="$PY" ./packaging/gh_release.sh upload "$diag" "build-log-${PLATFORM}.txt" 2>&1 | tail -4
 
       - name: Upload as workflow artifact (manual runs)
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}

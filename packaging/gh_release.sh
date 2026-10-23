@@ -34,7 +34,11 @@ try:
 except Exception:
     sys.exit(0)
 val = data.get(sys.argv[2])
-if isinstance(val, str):
+if isinstance(val, bool):
+    print(str(val).lower())
+elif isinstance(val, (int, float)):
+    print(val)
+elif isinstance(val, str):
     print(val)
 PY
 }
@@ -74,22 +78,22 @@ ensure_release() {
 }
 
 upload_asset() {
-  local file="$1" name="${2:-$(basename "$1")}" tmp base code del
+  local file="$1" name="${2:-$(basename "$1")}" info base rel_id tmp code del attempt
   [ -f "$file" ] || { echo "no such file: $file" >&2; return 1; }
-  base="$(ensure_release | awk -F= '/^upload_base=/{print $2}')"
-  [ -n "$base" ] || { echo "no upload url" >&2; return 1; }
+  info="$(ensure_release)" || return 1
+  base="$(printf '%s\n' "$info" | awk -F= '/^upload_base=/{print $2}')"
+  rel_id="$(printf '%s\n' "$info" | awk -F'id=' '/^release id=/{print $2}')"
+  [ -n "$base" ] && [ -n "$rel_id" ] || { echo "no release url (info: $info)" >&2; return 1; }
 
   # replace an existing asset of the same name (re-running a tag must not 422)
   tmp="$(mktemp)"
-  local rel_id="${base%%/assets*}"
-  rel_id="${rel_id##*/}"
   curl -sS -m 60 -o "$tmp" \
     -H "Authorization: Bearer $GH_TOKEN" \
     -H "Accept: application/vnd.github+json" \
     "$API/repos/$REPO/releases/$rel_id/assets?per_page=100" >/dev/null
   while read -r del; do
     [ -n "$del" ] || continue
-    echo "replacing existing asset id $del"
+    echo "replacing existing asset id $del ($name)"
     curl -sS -m 60 -X DELETE \
       -H "Authorization: Bearer $GH_TOKEN" \
       -H "Accept: application/vnd.github+json" \
@@ -107,7 +111,6 @@ PY
 )
   rm -f "$tmp"
 
-  local attempt
   for attempt in 1 2 3; do
     code=$(curl -sS -m 900 -o /dev/null -w "%{http_code}" \
       -H "Authorization: Bearer $GH_TOKEN" \
@@ -116,8 +119,8 @@ PY
       --data-binary "@$file" \
       "$base?name=$name")
     case "$code" in
-      201) echo "uploaded $name ($(wc -c < "$file") bytes)"; return 0 ;;
-      *) echo "upload attempt $attempt for $name -> http $code" >&2; sleep $((attempt * 6)) ;;
+      201) echo "uploaded $name ($(wc -c < "$file") bytes) to release $rel_id"; return 0 ;;
+      *) echo "upload attempt $attempt for $name -> http $code" >&2; sleep $((attempt * 3)) ;;
     esac
   done
   return 1
