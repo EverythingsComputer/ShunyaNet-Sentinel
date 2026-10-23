@@ -31,8 +31,11 @@ jobs:
             os: ubuntu-22.04
           - platform: macos-arm64
             os: macos-14
-          - platform: macos-x86_64
-            os: macos-13
+          # No Intel macOS job. GitHub retired its Intel macOS runners, so a macos-13
+          # entry only queues forever; there is nowhere to build an x86_64 .app. A
+          # universal2 build (one .app for both Mac architectures) is feasible - it
+          # needs a universal2 CPython plus both slices of the PySide6 wheels lipo'd
+          # together - but until that is set up here, Intel Macs install from source.
 
     name: ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}

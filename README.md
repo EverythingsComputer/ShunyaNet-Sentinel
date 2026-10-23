@@ -227,7 +227,7 @@ Downloads live on the [Releases page](https://github.com/EverythingsComputer/Shu
 |---|---|---|
 | `ShunyaNetSentinel-v<X.Y.Z>-windows-x86_64.zip` | Windows 10/11, 64-bit | `ShunyaNetSentinel.exe` |
 | `ShunyaNetSentinel-v<X.Y.Z>-macos-arm64.zip` | Apple silicon Macs (macOS 11+) | `ShunyaNetSentinel.app` |
-| `ShunyaNetSentinel-v<X.Y.Z>-macos-x86_64.zip` | Intel Macs (macOS 11+) | `ShunyaNetSentinel.app` |
+| — | Intel Macs (macOS 11+) | no prebuilt: GitHub has no Intel macOS runners left, so build from source with the commands below |
 | `ShunyaNetSentinel-v<X.Y.Z>-linux-x86_64.zip` | Linux, 64-bit (X11/Wayland) | `./ShunyaNetSentinel` |
 
 Unzip it anywhere and run it — no installer, no Python, nothing written outside the folder. Every zip ships with a `.sha256` file beside it; check it after downloading:
