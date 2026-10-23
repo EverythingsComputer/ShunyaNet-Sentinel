@@ -94,7 +94,10 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=_strip_flag(),
     upx=False,                      # UPX packing breaks macOS code sealing
-    console=False,                  # windowed app; --smoke-test writes SENTINEL_SMOKE_FILE
+    # Shipped builds are windowed. Set SENTINEL_CONSOLE=1 to get a console build:
+    # same program, but anything that kills it at startup is written to stderr where
+    # a log can see it instead of into a dialog nobody is watching.
+    console=os.environ.get("SENTINEL_CONSOLE", "0") == "1",
     # A windowed build normally reports a startup exception with a MODAL dialog -
     # invisible headless on CI, where it just hangs until the job times out. Send
     # it to stderr instead (the workflow redirects that into its build log).

@@ -38,6 +38,57 @@ if (-not (Test-Path -LiteralPath $Exe)) {
     exit 127
 }
 
+# A hidden modal dialog is otherwise invisible in a build log: grab the screen and
+# the text of every visible window so the error message becomes part of the record.
+function Capture-DiagnosticScreen {
+    param([string]$Tag)
+    try {
+        Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+        $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+        $bmp = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height
+        $g = [System.Drawing.Graphics]::FromImage($bmp)
+        $g.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
+        $png = Join-Path $LogDir "error-screen-$Tag.png"
+        $bmp.Save($png, [System.Drawing.Imaging.ImageFormat]::Png)
+        $g.Dispose(); $bmp.Dispose()
+        Write-Host "screen captured: $png"
+    } catch {
+        Write-Host "screen capture failed: $_"
+    }
+
+    try {
+        Add-Type @"
+using System;
+using System.Text;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+public class WinText {
+    delegate bool EnumProc(IntPtr h, IntPtr l);
+    [DllImport("user32.dll")] static extern bool EnumWindows(EnumProc cb, IntPtr l);
+    [DllImport("user32.dll")] static extern bool EnumChildWindows(IntPtr h, EnumProc cb, IntPtr l);
+    [DllImport("user32.dll", CharSet=CharSet.Unicode)] static extern int GetWindowTextW(IntPtr h, StringBuilder s, int n);
+    [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr h);
+    static string T(IntPtr h) { var sb = new StringBuilder(512); GetWindowTextW(h, sb, sb.Capacity); return sb.ToString(); }
+    public static List<string> Dump() {
+        var outp = new List<string>();
+        EnumWindows((h, l) => {
+            if (!IsWindowVisible(h)) return true;
+            string title = T(h);
+            if (string.IsNullOrEmpty(title)) return true;
+            outp.Add("WINDOW: [" + title + "]");
+            EnumChildWindows(h, (c, l2) => { string t = T(c); if (!string.IsNullOrEmpty(t)) outp.Add("   text: " + t); return true; }, IntPtr.Zero);
+            return true;
+        }, IntPtr.Zero);
+        return outp;
+    }
+}
+"@
+        foreach ($line in [WinText]::Dump()) { Write-Host $line }
+    } catch {
+        Write-Host "window text enumeration failed: $_"
+    }
+}
+
 function Show-Captured {
     param([string]$Tag)
     foreach ($suffix in @("stdout", "stderr")) {
@@ -81,6 +132,7 @@ function Invoke-Bounded {
         $title = "unknown"
         try { $title = $proc.MainWindowTitle } catch { }
         Write-Host "$Tag TIMED OUT after ${LimitSec}s (window title: '$title')"
+        Capture-DiagnosticScreen -Tag $Tag
         try { Stop-Process -Id $proc.Id -Force -ErrorAction Stop } catch { }
         return 2
     }

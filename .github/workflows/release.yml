@@ -322,6 +322,32 @@ jobs:
           } 2>&1 | tee -a "$DIAG"
           test "${PIPESTATUS[0]}" -eq 0
 
+      # Windows-only autopsy: rebuild the same program WITH a console and run it.
+      # Whatever kills the windowed build at startup (it shows an "Error" dialog and
+      # waits forever) writes its traceback to stderr here, where the log can see it.
+      - name: Capture the real startup error (Windows failures only)
+        if: failure() && runner.os == 'Windows'
+        continue-on-error: true
+        shell: bash
+        env:
+          DIAG: ${{ runner.temp }}/build-log.txt
+        run: |
+          { echo "=== console autopsy ==="
+            SENTINEL_CONSOLE=1 "$PY" -m PyInstaller --noconfirm --log-level ERROR \
+              --distpath dist-cli --workpath build-cli ShunyaNet_Sentinel.spec
+            export SENTINEL_HOME="$RUNNER_TEMP/sentinel-cli-home"
+            export SENTINEL_SMOKE_FILE="$RUNNER_TEMP/smoke-cli.txt"
+            rm -rf "$SENTINEL_HOME"; mkdir -p "$SENTINEL_HOME"
+            exe="./dist-cli/$APP_NAME/$APP_NAME.exe"
+            if [ -f "$exe" ]; then
+              timeout 120 "$exe" --version; echo "console --version exit=$?"
+              timeout 240 "$exe" --smoke-test; echo "console smoke exit=$?"
+              if [ -f "$SENTINEL_SMOKE_FILE" ]; then echo "--- console smoke report ---"; cat "$SENTINEL_SMOKE_FILE"; fi
+            else
+              echo "console build produced no exe at $exe"
+            fi
+          } 2>&1 | tee -a "$DIAG"
+
       # A failed job's own log is readable only by repo admins, so publish our copy
       # of the build log - anyone can then see why a tag build broke.
       - name: Publish build diagnostics (failures only)
@@ -339,7 +365,14 @@ jobs:
             { echo; echo "===== smoke ====="; cat "${RUNNER_TEMP}/smoke.txt"; } >> "$diag"
           fi
           { echo; echo "===== dist listing ====="; ls -la dist 2>/dev/null; } >> "$diag" || true
-          PY="$PY" ./packaging/gh_release.sh upload "$diag" "build-log-${PLATFORM}.txt" 2>&1 | tail -4
+          PY="$PY" ./packaging/gh_release.sh upload "$diag" "build-log-${PLATFORM}.txt" 2>&1 | tail -3
+          # if the smoke script screenshotted a dialog, publish that too - it carries
+          # the message nobody could see on a headless runner
+          for shot in "${RUNNER_TEMP}"/error-screen-*.png; do
+            [ -f "$shot" ] || continue
+            base=$(basename "$shot" .png)
+            PY="$PY" ./packaging/gh_release.sh upload "$shot" "${base}-${PLATFORM}.png" 2>&1 | tail -2
+          done
 
       - name: Upload as workflow artifact (manual runs)
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
